@@ -5,10 +5,16 @@ WORKDIR /app
 ENV PIP_DISABLE_PIP_VERSION_CHECK=on
 ENV UV_HTTP_TIMEOUT=120
 
-RUN apt-get update && apt-get install -y
-RUN apt update && apt install -y
-RUN apt install libuv1-dev libssl-dev systemd build-essential curl ca-certificates tar -y
-RUN rm -rf /var/lib/apt/lists/*
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        ca-certificates \
+        curl \
+        libssl-dev \
+        libuv1-dev \
+        systemd \
+        tar \
+    && rm -rf /var/lib/apt/lists/*
 
 ADD https://astral.sh/uv/install.sh /uv-installer.sh
 
@@ -28,6 +34,8 @@ RUN cd /app && uv venv && uv sync
 FROM base AS with-cron
 ARG CRON_TAB_FILE
 
-RUN apt-get update && apt-get install -y cron
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends cron \
+    && rm -rf /var/lib/apt/lists/*
 RUN crontab $CRON_TAB_FILE
 RUN cron

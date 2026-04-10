@@ -1,8 +1,6 @@
 FROM node:22
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y
-
 COPY ./ui /app
 COPY ./shared/ts /shared/ts
 
