@@ -11,8 +11,6 @@ x-langboard-env: &langboard-env
   API_PORT: ${API_PORT:-5381}
   SOCKET_HOST: socket
   SOCKET_PORT: ${SOCKET_PORT:-5690}
-  FLOWS_HOST: flows
-  FLOWS_PORT: ${FLOWS_PORT:-5019}
   MAX_FILE_SIZE_MB: ${MAX_FILE_SIZE_MB:-50}
   AI_REQUEST_TIMEOUT: ${AI_REQUEST_TIMEOUT:-120}
   AI_REQUEST_TRIALS: ${AI_REQUEST_TRIALS:-5}
@@ -56,7 +54,7 @@ x-langboard-env: &langboard-env
   MAIL_PORT: ${MAIL_PORT:-}
   MAIL_STARTTLS: ${MAIL_STARTTLS:-}
   MAIL_SSL_TLS: ${MAIL_SSL_TLS:-}
-  DEFAULT_FLOWS_URL: ${DEFAULT_FLOWS_URL:-http://flows:${FLOWS_PORT:-5019}}
+  DEFAULT_FLOWS_URL: ${DEFAULT_FLOWS_URL:-http://127.0.0.1:5019}
   UI_PORT: ${UI_PORT:-5173}
   DOMAIN: ${DOMAIN:-langboarddev.yamon.io}
   CRON_TAB_FILE: ${CRON_TAB_FILE:-}
@@ -148,25 +146,6 @@ services:
     environment:
       <<: *langboard-env
     depends_on:
-      vault:
-        condition: service_healthy
-    volumes:
-      - vault-creds:/vault-shared:ro
-    restart: unless-stopped
-
-  flows:
-    build:
-      context: ../src
-      dockerfile: flows/Dockerfile
-    working_dir: /app/src/flows
-    environment:
-      <<: *langboard-env
-    command: >
-      sh -lc "cp /vault-shared/.vault-credentials /app/.vault-credentials &&
-      uv run --no-sync flows run --workers ${FLOWS_WORKERS_COUNT:-1}"
-    depends_on:
-      db:
-        condition: service_healthy
       vault:
         condition: service_healthy
     volumes:
