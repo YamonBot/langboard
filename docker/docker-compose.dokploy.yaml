@@ -119,10 +119,7 @@ services:
     restart: unless-stopped
 
   api:
-    build:
-      context: ..
-      dockerfile: Dockerfile
-      target: base
+    image: ${LANGBOARD_API_IMAGE:?LANGBOARD_API_IMAGE is required}
     environment:
       <<: *langboard-env
       WORKER: main
@@ -140,9 +137,7 @@ services:
     restart: unless-stopped
 
   socket:
-    build:
-      context: ../src
-      dockerfile: socket/Dockerfile
+    image: ${LANGBOARD_SOCKET_IMAGE:?LANGBOARD_SOCKET_IMAGE is required}
     environment:
       <<: *langboard-env
     depends_on:
@@ -153,13 +148,7 @@ services:
     restart: unless-stopped
 
   server:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.nginx-dokploy
-      args:
-        PUBLIC_UI_URL: ${PUBLIC_UI_URL:-https://${DOMAIN}}
-        API_URL: ${API_URL:-/api}
-        SOCKET_URL: ${SOCKET_URL:-/socket}
+    image: ${LANGBOARD_SERVER_IMAGE:?LANGBOARD_SERVER_IMAGE is required}
     environment:
       API_HOST: api
       API_PORT: ${API_PORT:-5381}
