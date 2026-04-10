@@ -66,8 +66,8 @@ x-langboard-env: &langboard-env
   S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
   S3_REGION_NAME: ${S3_REGION_NAME:-}
   S3_BUCKET_NAME: ${S3_BUCKET_NAME:-}
-  KEY_PROVIDER_TYPE: ${KEY_PROVIDER_TYPE:-openbao-external}
-  KEY_PROVIDER_OPENBAO_URL: ${KEY_PROVIDER_OPENBAO_URL:-}
+  KEY_PROVIDER_TYPE: ${KEY_PROVIDER_TYPE:-openbao-local}
+  KEY_PROVIDER_OPENBAO_URL: ${KEY_PROVIDER_OPENBAO_URL:-http://vault:8200}
   KEY_PROVIDER_OPENBAO_ROOT_TOKEN: ${KEY_PROVIDER_OPENBAO_ROOT_TOKEN:-}
   KEY_PROVIDER_HASHICORP_URL: ${KEY_PROVIDER_HASHICORP_URL:-}
   KEY_PROVIDER_HASHICORP_ROLE_ID: ${KEY_PROVIDER_HASHICORP_ROLE_ID:-}
@@ -83,6 +83,28 @@ x-langboard-env: &langboard-env
   KEY_PROVIDER_AZURE_ENCRYPTION_KEY_NAME: ${KEY_PROVIDER_AZURE_ENCRYPTION_KEY_NAME:-}
 
 services:
+  vault:
+    image: openbao/openbao:latest
+    environment:
+      BAO_LOCAL_CONFIG: >-
+        {"listener":{"tcp":{"address":"0.0.0.0:8200","tls_disable":true}},
+        "storage":{"file":{"path":"/openbao/file"}},
+        "api_addr":"http://vault:8200","disable_mlock":true,"ui":true}
+      PROJECT_NAME: ${PROJECT_NAME:-langboard}
+    command: ["sh", "/entrypoint.sh"]
+    volumes:
+      - ./vault/entrypoint.dokploy.sh:/entrypoint.sh:ro
+      - vault-file:/openbao/file
+      - vault-init:/openbao/init
+      - vault-creds:/vault-shared
+    healthcheck:
+      test: ["CMD", "bao", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
   db:
     image: postgres:16
     environment:
@@ -107,11 +129,16 @@ services:
       <<: *langboard-env
       WORKER: main
     command: >
-      sh -lc "uv run --no-sync langboard db:up &&
+      sh -lc "cp /vault-shared/.vault-credentials /app/.vault-credentials &&
+      uv run --no-sync langboard db:up &&
       uv run --no-sync langboard run --workers ${API_WORKERS_COUNT:-2}"
     depends_on:
       db:
         condition: service_healthy
+      vault:
+        condition: service_healthy
+    volumes:
+      - vault-creds:/vault-shared:ro
     restart: unless-stopped
 
   socket:
@@ -120,6 +147,11 @@ services:
       dockerfile: socket/Dockerfile
     environment:
       <<: *langboard-env
+    depends_on:
+      vault:
+        condition: service_healthy
+    volumes:
+      - vault-creds:/vault-shared:ro
     restart: unless-stopped
 
   flows:
@@ -129,10 +161,16 @@ services:
     working_dir: /app/src/flows
     environment:
       <<: *langboard-env
-    command: uv run --no-sync flows run --workers ${FLOWS_WORKERS_COUNT:-1}
+    command: >
+      sh -lc "cp /vault-shared/.vault-credentials /app/.vault-credentials &&
+      uv run --no-sync flows run --workers ${FLOWS_WORKERS_COUNT:-1}"
     depends_on:
       db:
         condition: service_healthy
+      vault:
+        condition: service_healthy
+    volumes:
+      - vault-creds:/vault-shared:ro
     restart: unless-stopped
 
   server:
@@ -156,3 +194,6 @@ services:
 
 volumes:
   pgdata:
+  vault-file:
+  vault-init:
+  vault-creds:
