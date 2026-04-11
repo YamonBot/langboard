@@ -1,6 +1,7 @@
 import { CACHE_DIR } from "@/Constants";
 import BaseCache from "@/core/caching/BaseCache";
 import { Utils } from "@langboard/core/utils";
+import fs from "fs";
 import path from "path";
 import sqlite3 from "sqlite3";
 
@@ -9,6 +10,7 @@ class InMemoryCache extends BaseCache {
 
     constructor() {
         super();
+        fs.mkdirSync(CACHE_DIR, { recursive: true });
         this.#db = new sqlite3.Database(path.join(CACHE_DIR, "cache.db"));
         this.#db.run(`CREATE TABLE IF NOT EXISTS cache (
             key TEXT PRIMARY KEY,
