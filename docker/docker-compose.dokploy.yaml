@@ -146,6 +146,7 @@ services:
         condition: service_healthy
     volumes:
       - vault-creds:/vault-shared:ro
+      - socket-local:/app/local
     restart: unless-stopped
 
   server:
@@ -159,6 +160,8 @@ services:
     depends_on:
       - api
       - socket
+    volumes:
+      - ./nginx.dokploy.conf.template:/etc/nginx/templates/default.conf.template:ro
     restart: unless-stopped
 
 volumes:
@@ -166,3 +169,4 @@ volumes:
   vault-file:
   vault-init:
   vault-creds:
+  socket-local:
