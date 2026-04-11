@@ -4,6 +4,9 @@ x-langboard-env: &langboard-env
   ENVIRONMENT: production
   PROJECT_NAME: ${PROJECT_NAME:-langboard}
   PROJECT_SHORT_NAME: ${PROJECT_SHORT_NAME:-lb}
+  ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@langboard.io}
+  ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
+  FULL_ADMIN_ACCESS_EMAILS: ${FULL_ADMIN_ACCESS_EMAILS:-admin@langboard.io}
   PUBLIC_UI_URL: ${PUBLIC_UI_URL:-https://${DOMAIN}}
   API_URL: ${API_URL:-/api}
   SOCKET_URL: ${SOCKET_URL:-/socket}
