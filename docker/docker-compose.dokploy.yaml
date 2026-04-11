@@ -88,6 +88,7 @@ services:
         {"listener":{"tcp":{"address":"0.0.0.0:8200","tls_disable":true}},
         "storage":{"file":{"path":"/openbao/file"}},
         "api_addr":"http://vault:8200","disable_mlock":true,"ui":true}
+      BAO_ADDR: http://127.0.0.1:8200
       PROJECT_NAME: ${PROJECT_NAME:-langboard}
     command: ["sh", "/entrypoint.sh"]
     volumes:
