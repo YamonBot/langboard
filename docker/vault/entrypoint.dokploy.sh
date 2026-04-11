@@ -36,7 +36,7 @@ fi
 export BAO_TOKEN="${ROOT_TOKEN}"
 
 if ! bao auth list 2>/dev/null | grep -q "approle/"; then
-  bao auth enable approle >/dev/null
+  bao auth enable approle >/dev/null 2>&1 || true
 fi
 
 cat >/tmp/apikeys-policy.hcl <<'EOF'
@@ -56,7 +56,7 @@ bao policy write apikeys-policy /tmp/apikeys-policy.hcl >/dev/null
 bao write "auth/approle/role/${ROLE_NAME}" token_policies=apikeys-policy >/dev/null
 
 if ! bao secrets list 2>/dev/null | grep -q "^apikeys/$"; then
-  bao secrets enable -path=apikeys kv-v2 >/dev/null
+  bao secrets enable -path=apikeys kv-v2 >/dev/null 2>&1 || true
 fi
 
 ROLE_ID=$(bao read -field=role_id "auth/approle/role/${ROLE_NAME}/role-id")
