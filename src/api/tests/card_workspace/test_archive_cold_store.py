@@ -432,7 +432,10 @@ def test_hot_queries_share_the_exact_boundary_and_hide_cold_relationship_endpoin
     # though avatar queries exclude it. No other card is discovered by this read.
     with engine.begin() as connection:
         connection.execute(
-            Checkitem.__table__.update().where(Checkitem.__table__.c.id == 604).values(status="started", is_checked=False)
+            Checkitem.__table__.update().where(Checkitem.__table__.c.id == 604).values(status="started", is_checked=False, user_id=1)
         )
     assert state_repo.get_work_state_counts([cold_id]) == {cold_id: (1, 0, 1, 0)}
+    with engine.begin() as connection:
+        connection.execute(Checkitem.__table__.update().where(Checkitem.__table__.c.id == 604).values(user_id=None))
+    assert state_repo.get_work_state_counts([cold_id]) == {cold_id: (1, 0, 0, 0)}
     assert state_repo.get_work_state_counts([]) == {}

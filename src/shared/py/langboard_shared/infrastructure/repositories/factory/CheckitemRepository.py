@@ -19,8 +19,14 @@ class CheckitemRepository(BaseOrderRepository[Checkitem, Checklist]):
                 Checklist.column("card_id"),
                 func.count(Checkitem.column("id")),
                 func.sum(case((Checkitem.column("is_checked") == True, 1), else_=0)),  # noqa: E712
-                func.sum(case((Checkitem.column("status") == CheckitemStatus.Started, 1), else_=0)),
-                func.sum(case((Checkitem.column("status") == CheckitemStatus.Paused, 1), else_=0)),
+                func.sum(case(
+                    ((Checkitem.column("status") == CheckitemStatus.Started) & Checkitem.column("user_id").is_not(None), 1),
+                    else_=0,
+                )),
+                func.sum(case(
+                    ((Checkitem.column("status") == CheckitemStatus.Paused) & Checkitem.column("user_id").is_not(None), 1),
+                    else_=0,
+                )),
             )
             .join(Checklist, Checkitem.column("checklist_id") == Checklist.column("id"))
             .where(Checklist.column("card_id").in_(card_ids))
