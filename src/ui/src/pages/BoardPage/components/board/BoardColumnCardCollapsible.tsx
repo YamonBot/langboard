@@ -116,6 +116,8 @@ function BoardColumnTaskCard({ isDragging, compact = false }: IBoardColumnCardCo
     const deadlineAt = card.useField("deadline_at");
     const archivedAt = card.useField("archived_at");
     const columnUID = card.useField("project_column_uid");
+    const columnName = card.useField("project_column_name");
+    const workState = card.useField("work_state");
     const updatedAt = card.useField("updated_at");
     const checklistCompletedCount = card.useField("checklist_completed_count") ?? 0;
     const checklistTotalCount = card.useField("checklist_total_count") ?? 0;
@@ -124,7 +126,8 @@ function BoardColumnTaskCard({ isDragging, compact = false }: IBoardColumnCardCo
         [checklistCompletedCount, checklistTotalCount]
     );
     const isChecklistTerminated = isChecklistCompleted(checklistProgress);
-    const workflowStage = columns.find((column) => column.uid === columnUID)?.workflow_stage;
+    const workflowStage =
+        workState?.workflow_stage ?? columns.find((column) => column.uid === columnUID || column.name === columnName)?.workflow_stage;
     const isFinished = isDeadlineWarningSuppressed({ archivedAt, checklist: checklistProgress, workflowStage });
     const staleDays = getStaleDays({ updatedAt, now: deadlineClock, isFinished });
     const deadlinePressure = useMemo(
