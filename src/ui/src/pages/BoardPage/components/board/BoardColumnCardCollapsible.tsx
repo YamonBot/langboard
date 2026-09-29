@@ -127,7 +127,9 @@ function BoardColumnTaskCard({ isDragging, compact = false }: IBoardColumnCardCo
     );
     const isChecklistTerminated = isChecklistCompleted(checklistProgress);
     const workflowStage =
-        workState?.workflow_stage ?? columns.find((column) => column.uid === columnUID || column.name === columnName)?.workflow_stage;
+        workState?.workflow_stage ??
+        columns.find((column) => column.uid === columnUID)?.workflow_stage ??
+        columns.find((column) => column.name === columnName)?.workflow_stage;
     const isFinished = isDeadlineWarningSuppressed({ archivedAt, checklist: checklistProgress, workflowStage });
     const staleDays = getStaleDays({ updatedAt, now: deadlineClock, isFinished });
     const deadlinePressure = useMemo(

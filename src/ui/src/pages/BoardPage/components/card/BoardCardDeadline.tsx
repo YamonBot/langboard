@@ -61,7 +61,9 @@ const BoardCardDeadline = memo(() => {
     const checklistTotalCount = card.useField("checklist_total_count") ?? 0;
     const { columns, deadlineClock } = useBoard();
     const workflowStage =
-        workState?.workflow_stage ?? columns.find((column) => column.uid === columnUID || column.name === columnName)?.workflow_stage;
+        workState?.workflow_stage ??
+        columns.find((column) => column.uid === columnUID)?.workflow_stage ??
+        columns.find((column) => column.name === columnName)?.workflow_stage;
     const isFinished = isDeadlineWarningSuppressed({
         archivedAt,
         checklist: { completed: checklistCompletedCount, total: checklistTotalCount },
