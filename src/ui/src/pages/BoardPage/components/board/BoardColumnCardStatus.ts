@@ -52,6 +52,16 @@ export const isDeadlineFinished = ({
     checklist: Pick<IBoardCardChecklistProgress, "completed" | "total">;
 }): boolean => Boolean(archivedAt) || isChecklistCompleted(checklist);
 
+export const isDeadlineWarningSuppressed = ({
+    archivedAt,
+    checklist,
+    workflowStage,
+}: {
+    archivedAt?: Date | null;
+    checklist: Pick<IBoardCardChecklistProgress, "completed" | "total">;
+    workflowStage?: string | null;
+}): boolean => isDeadlineFinished({ archivedAt, checklist }) || workflowStage === "closed";
+
 export const getStaleDays = ({
     updatedAt,
     now,

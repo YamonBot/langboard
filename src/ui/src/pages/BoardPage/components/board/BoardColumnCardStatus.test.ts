@@ -12,10 +12,18 @@ import {
     getOverdueDays,
     getUpcomingDeadlineDays,
     isDeadlineFinished,
+    isDeadlineWarningSuppressed,
     isChecklistCompleted,
 } from "./BoardColumnCardStatus.ts";
 
 describe("board column card status", () => {
+    it("suppresses deadline warning for an explicitly closed column without changing the deadline", () => {
+        const checklist = { completed: 0, total: 0 };
+        assert.equal(isDeadlineFinished({ checklist }), false);
+        assert.equal(isDeadlineWarningSuppressed({ checklist, workflowStage: "closed" }), true);
+        assert.equal(isDeadlineWarningSuppressed({ checklist, workflowStage: null }), false);
+        assert.equal(isDeadlineWarningSuppressed({ checklist, workflowStage: "active" }), false);
+    });
     it("calculates checklist completion and hides progress without items", () => {
         assert.deepEqual(calculateChecklistProgress([]), { completed: 0, total: 0, ratio: 0 });
         assert.deepEqual(calculateChecklistProgress([{ is_checked: true }, { is_checked: false }]), {

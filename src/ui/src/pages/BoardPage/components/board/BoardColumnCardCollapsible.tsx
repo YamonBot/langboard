@@ -31,7 +31,7 @@ import {
     getOverdueDays,
     getUpcomingDeadlineDays,
     isChecklistCompleted,
-    isDeadlineFinished,
+    isDeadlineWarningSuppressed,
     type IBoardCardChecklistProgress,
 } from "@/pages/BoardPage/components/board/BoardColumnCardStatus";
 import BoardTaskMetadataBadges from "@/pages/BoardPage/components/task/BoardTaskMetadataBadges";
@@ -109,12 +109,13 @@ function BoardColumnWikiCard({ isDragging }: IBoardColumnCardCollapsibleProps) {
 
 function BoardColumnTaskCard({ isDragging, compact = false }: IBoardColumnCardCollapsibleProps) {
     const { selectCardViewType, selectedRelationshipUIDs, currentCardUIDRef, isDisabledCard } = useBoardController();
-    const { project, filters, cardsMap, globalRelationshipTypes, navigateWithFilters, deadlineClock } = useBoard();
+    const { project, columns, filters, cardsMap, globalRelationshipTypes, navigateWithFilters, deadlineClock } = useBoard();
     const [t] = useTranslation();
     const { model: card } = ModelRegistry.ProjectCard.useContext<IBoardColumnCardContextParams>();
     const title = card.useField("title");
     const deadlineAt = card.useField("deadline_at");
     const archivedAt = card.useField("archived_at");
+    const columnUID = card.useField("project_column_uid");
     const updatedAt = card.useField("updated_at");
     const checklistCompletedCount = card.useField("checklist_completed_count") ?? 0;
     const checklistTotalCount = card.useField("checklist_total_count") ?? 0;
@@ -123,7 +124,8 @@ function BoardColumnTaskCard({ isDragging, compact = false }: IBoardColumnCardCo
         [checklistCompletedCount, checklistTotalCount]
     );
     const isChecklistTerminated = isChecklistCompleted(checklistProgress);
-    const isFinished = isDeadlineFinished({ archivedAt, checklist: checklistProgress });
+    const workflowStage = columns.find((column) => column.uid === columnUID)?.workflow_stage;
+    const isFinished = isDeadlineWarningSuppressed({ archivedAt, checklist: checklistProgress, workflowStage });
     const staleDays = getStaleDays({ updatedAt, now: deadlineClock, isFinished });
     const deadlinePressure = useMemo(
         () => calculateDeadlinePressure({ deadlineAt, isCompleted: isFinished, now: deadlineClock }),
