@@ -93,7 +93,7 @@ def get_card_bundle(
         core=core,
         workflow=pick(
             details,
-            ("project_column_uid", "project_column_name", "order", "deadline_at", "archived_at"),
+            ("project_column_uid", "project_column_name", "workflow_stage", "order", "deadline_at", "archived_at"),
         ),
     )
     if CardBundleInclude.People in requested:
