@@ -96,7 +96,7 @@ def graph_service(monkeypatch: pytest.MonkeyPatch):
                     ).all()
 
             def get_global_relationship_types_map(self, _ids):
-                return {SnowflakeID(1): object()}
+                return {SnowflakeID(1): SimpleNamespace(is_active=True, machine_semantic="blocks")}
 
             def apply_graph_patch(self, new_cards, existing_card_ids, add_edges, remove_relationship_ids):
                 assert not new_cards and not remove_relationship_ids
@@ -110,7 +110,12 @@ def graph_service(monkeypatch: pytest.MonkeyPatch):
                                 "INSERT INTO card_relationship (id, card_id_parent, card_id_child, relationship_type_id) "
                                 "OVERRIDING SYSTEM VALUE VALUES (:id, :parent_id, :child_id, :type_id)"
                             ),
-                            params={"id": relationship_id, "parent_id": parent_id, "child_id": child_id, "type_id": relationship_type_id},
+                            params={
+                                "id": relationship_id,
+                                "parent_id": parent_id,
+                                "child_id": child_id,
+                                "type_id": relationship_type_id,
+                            },
                         )
                         created.append(CreatedEdge(relationship_id, parent_id, child_id))
                 return created
