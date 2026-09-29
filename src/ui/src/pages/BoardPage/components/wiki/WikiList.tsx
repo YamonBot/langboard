@@ -70,7 +70,6 @@ interface IWikiListDisplayProps {
 function WikiListDisplay({ wikiUID }: IWikiListDisplayProps) {
     const [t] = useTranslation();
     const { project, wikis, canAccessWiki, modeType, setModeType, wikiTabListId } = useBoardWiki();
-    const navigate = usePageNavigateRef();
     const { updateUI } = Tabs.useTabsContext();
     const { onPointerDown } = useGrabbingScrollHorizontal(wikiTabListId);
     const handleDeleteMode = useCallback(() => {
@@ -98,13 +97,11 @@ function WikiListDisplay({ wikiUID }: IWikiListDisplayProps) {
     return (
         <Box p="2">
             <nav aria-label="Breadcrumb" className="mb-2 flex min-w-0 items-center gap-2 px-1 text-xs text-muted-foreground">
-                <button type="button" className="hover:text-foreground hover:underline" onClick={() => navigate(ROUTES.BOARD.MAIN(project.uid))}>
+                <a href={ROUTES.BOARD.MAIN(project.uid)} className="hover:text-foreground hover:underline">
                     {t("board.Board")}
-                </button>
+                </a>
                 <span aria-hidden="true">/</span>
-                <button type="button" className="hover:text-foreground hover:underline" onClick={() => navigate(ROUTES.BOARD.WIKI(project.uid))}>
-                    {t("board.Wiki")}
-                </button>
+                <span>{t("board.Wiki")}</span>
                 {activeWiki && (
                     <>
                         <span aria-hidden="true">/</span>
