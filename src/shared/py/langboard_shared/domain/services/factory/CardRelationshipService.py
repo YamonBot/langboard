@@ -33,8 +33,23 @@ class CardRelationshipService(BaseDomainService):
             return []
 
         raw_relationships = self.repo.card_relationship.get_all_by_card(card, limit=limit)
-        relationships = [relationship.api_response() for relationship, _ in raw_relationships]
+        relationships = [
+            self.public_relationship(relationship, relation_type) for relationship, relation_type in raw_relationships
+        ]
         return relationships
+
+    @staticmethod
+    def public_relationship(relationship: CardRelationship, relation_type: Any) -> dict[str, Any]:
+        """Expose the stable meaning alongside an existing edge without changing it."""
+
+        return {
+            **relationship.api_response(),
+            "parent_name": relation_type.parent_name,
+            "child_name": relation_type.child_name,
+            "machine_semantic": relation_type.machine_semantic,
+            "affects_readiness": relation_type.affects_readiness,
+            "is_system_default": relation_type.is_system_default,
+        }
 
     def get_api_list_by_by_project(self, project: TProjectParam | None) -> list[dict[str, Any]]:
         project = InfraHelper.get_by_id_like(Project, project)
@@ -42,7 +57,9 @@ class CardRelationshipService(BaseDomainService):
             return []
 
         raw_relationships = self.repo.card_relationship.get_all_by_project(project)
-        relationships = [relationship.api_response() for relationship, _ in raw_relationships]
+        relationships = [
+            self.public_relationship(relationship, relation_type) for relationship, relation_type in raw_relationships
+        ]
         return relationships
 
     def update(
@@ -64,6 +81,9 @@ class CardRelationshipService(BaseDomainService):
             card, relation="parent" if is_parent else "child"
         )
         old_relationship_ids = [relationship.id for relationship, _, _ in old_relationships]
+        old_pairs = {
+            (related_card.id, relationship.relationship_type_id) for relationship, _, related_card in old_relationships
+        }
 
         opposite_relationships = self.repo.card_relationship.get_all_by_card_and_relation(
             card, relation="child" if is_parent else "parent"
@@ -99,6 +119,15 @@ class CardRelationshipService(BaseDomainService):
             relationship_types = self.repo.card_relationship.get_global_relationship_types_map(
                 list(relationship_type_ids)
             )
+
+            for related_card_id, relationship_type_id in converted_relationships:
+                relation_type = relationship_types.get(relationship_type_id)
+                if (
+                    relation_type
+                    and not relation_type.is_active
+                    and (related_card_id, relationship_type_id) not in old_pairs
+                ):
+                    raise ValueError("Inactive relationship type cannot be used for a new edge")
 
             new_relationships_dict: dict[SnowflakeID, bool] = {}
             for related_card_id, relationship_type_id in converted_relationships:
@@ -223,6 +252,8 @@ class CardRelationshipService(BaseDomainService):
             )
             if len(relationship_types) != len(relationship_type_ids):
                 raise ValueError("Unknown relationship type")
+            if any(not relation_type.is_active for relation_type in relationship_types.values()):
+                raise ValueError("Inactive relationship type cannot be used for a new edge")
 
             removed_ids = {relationship_id for relationship_id, _, _ in remove_relationships}
             current_edges = {
