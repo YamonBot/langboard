@@ -277,6 +277,7 @@ const BoardCardPageComponent = ({
                                       )
                             }
                             viewportClassName={!isExpanded ? "!py-0" : undefined}
+                            viewportAsTable={!embedded}
                             aria-describedby=""
                             withCloseButton={false}
                             nonModalOverlay
