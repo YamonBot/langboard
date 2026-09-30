@@ -178,7 +178,7 @@ const DashboardProxy = memo((): React.JSX.Element => {
                 { icon: "clock", label: t("dashboard.Tracking"), onClick: headerNavs[3].onClick!, active: pageType === "tracking" },
                 ...sidebarNavs.map((item) => ({ icon: item.icon, label: item.name, onClick: item.onClick! })),
             ]}
-            workbenchContext={<ProjectExplorerSidebar onNavigate={() => setIsMobileExplorerOpen(false)} />}
+            workbenchContext={<ProjectExplorerSidebar />}
             workbenchContextHidden={isMobile || !isExplorerOpen}
             mobileWorkbenchContext={
                 isMobile && isMobileExplorerOpen
