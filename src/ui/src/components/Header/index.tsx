@@ -148,6 +148,7 @@ const Header = memo(({ navs, title, compact }: IHeaderProps) => {
                 {compact && (
                     <Button
                         ref={commandTrigger}
+                        data-command-palette-trigger
                         type="button"
                         variant="outline"
                         size="sm"

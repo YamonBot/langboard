@@ -138,6 +138,7 @@ const ProjectQuickSwitcher = memo((): React.JSX.Element => {
                 if (!projectNavigation.current) return;
                 event.preventDefault();
                 projectNavigation.current = false;
+                document.querySelector<HTMLButtonElement>("[data-command-palette-trigger]")?.focus({ preventScroll: true });
             }}
             onOpenChange={(open) => {
                 setOpened(open);
