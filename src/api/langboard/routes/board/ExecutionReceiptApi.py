@@ -22,7 +22,7 @@ from langboard_shared.domain.models import Card, Project, ProjectRole
 from langboard_shared.domain.models.ProjectRole import ProjectRoleAction
 from langboard_shared.filter import RoleFilter
 from langboard_shared.helpers import InfraHelper
-from langboard_shared.infrastructure.repositories.factory.CardRepository import CardRepository
+from langboard_shared.infrastructure.repositories import Repository
 from langboard_shared.security import RoleFinder
 from langboard_shared.tasks.webhooks.ExecutionReadinessUow import current_execution, execution_readiness_uow
 from pydantic import Field, field_validator
@@ -177,7 +177,7 @@ def _move_to_review(db: DbSession, card_id: int, project_id: int) -> bool:
         .where(text("project_column_id = :target_id AND deleted_at IS NULL")),
         params={"target_id": target_id},
     ).first()[0]
-    CardRepository().update_row_order(
+    Repository().card.update_row_order(
         card_id, source[0], source[1], next_order, target_id, preserve_shifted_updated_at=True
     )
     db.exec(
