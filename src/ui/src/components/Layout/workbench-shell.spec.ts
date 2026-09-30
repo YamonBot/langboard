@@ -23,3 +23,16 @@ test("route changes retain the physical shell and preserve page context in its s
     await home.press("Enter");
     await expect(page.getByRole("heading", { name: "Dashboard", exact: true })).toBeVisible();
 });
+
+test("mobile drawer actions are keyboard reachable and open context content", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/src/components/Layout/workbench-shell.fixture.html");
+    await page.getByRole("button", { name: "Toggle navigation menu", exact: true }).click();
+    const explorer = page.getByRole("button", { name: "Explorer", exact: true });
+    await explorer.focus();
+    await explorer.press("Enter");
+    await expect(page.getByText("Sidebar Dashboard", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Close", exact: true }).click();
+    await expect(page.getByText("Sidebar Dashboard", { exact: true })).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+});

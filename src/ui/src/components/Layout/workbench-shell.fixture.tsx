@@ -1,4 +1,4 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createMemoryRouter, Link, RouterProvider, useLocation } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -13,13 +13,21 @@ function SidebarContent() {
 }
 function Page({ name }: { name: string }) {
     const location = useLocation();
+    const isMobile = window.innerWidth < 768;
+    const [contextOpen, setContextOpen] = useState(false);
     return (
         <PageContext.Provider value={`Sidebar ${name}`}>
             <DashboardStyledLayout
                 headerNavs={[]}
                 headerTitle={name}
-                activityRailItems={[{ icon: "panel-left", label: "Explorer", active: true, onClick: () => {} }]}
+                activityRailItems={[
+                    { icon: "panel-left", label: "Explorer", active: isMobile ? contextOpen : true, onClick: () => setContextOpen((open) => !open) },
+                ]}
                 workbenchContext={<SidebarContent />}
+                workbenchContextHidden={isMobile}
+                mobileWorkbenchContext={
+                    isMobile && contextOpen ? { title: "Explorer", icon: "panel-left", onClose: () => setContextOpen(false) } : undefined
+                }
             >
                 <h1>{name}</h1>
                 <p>{location.pathname}</p>
