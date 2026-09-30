@@ -18,7 +18,7 @@ import HeaderUserMenu from "@/components/Header/HeaderUserMenu";
 import HeaderUserNotification from "@/components/Header/HeaderUserNotification";
 import { PROJECT_QUICK_SWITCHER_EVENT } from "@/pages/DashboardPage/components/ProjectDiscovery";
 
-const Header = memo(({ navs, title, compact }: IHeaderProps) => {
+const Header = memo(({ navs, title, compact, navigationReady = true }: IHeaderProps) => {
     const [t] = useTranslation();
     const { currentUser } = useAuth();
     const [isOpened, setIsOpen] = useState(false);
@@ -27,10 +27,10 @@ const Header = memo(({ navs, title, compact }: IHeaderProps) => {
     const commandTrigger = useRef<HTMLButtonElement>(null);
 
     useEffect(() => {
-        if (location.state?.commandPaletteFocus === true) {
+        if (navigationReady && location.state?.commandPaletteFocus === true) {
             commandTrigger.current?.focus({ preventScroll: true });
         }
-    }, [location.key, location.state]);
+    }, [location.key, location.state, navigationReady]);
 
     const toDashboard = () => {
         navigate(ROUTES.DASHBOARD.PROJECTS.ALL, { smooth: true });
