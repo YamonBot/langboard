@@ -86,6 +86,15 @@ def test_native_receipt_is_idempotent_and_never_writes_user_description(monkeypa
 
     monkeypatch.setattr(readiness_module, "_scalar", lambda *args, **kwargs: False)
     monkeypatch.setattr(receipt_api, "execution_readiness_uow", receipt_uow)
+    actor = SimpleNamespace(id=44)
+    moves = []
+
+    def notify_move(received_actor, project_id, card_id, old_column_id, new_column_id):
+        with engine.connect() as connection:
+            committed = connection.execute(text("SELECT count(*) FROM execution_receipt")).scalar()
+        moves.append((received_actor, project_id, card_id, old_column_id, new_column_id, committed))
+
+    monkeypatch.setattr(receipt_api, "_review_move_notification", lambda *args: lambda: notify_move(*args))
     form = receipt_api.PutExecutionReceiptForm(
         status="success",
         summary="PR submitted",
@@ -99,14 +108,30 @@ def test_native_receipt_is_idempotent_and_never_writes_user_description(monkeypa
     )
     key = "langboard:board:card:5:receipt"
     try:
-        first = receipt_api.put_execution_receipt("board", "card", 5, form, key)
+
+        @contextmanager
+        def failed_receipt_uow():
+            with DbSession.atomic() as db:
+                yield readiness_module.ExecutionReadinessUow(db)
+                raise RuntimeError("receipt transaction failed before commit")
+
+        monkeypatch.setattr(receipt_api, "execution_readiness_uow", failed_receipt_uow)
+        with pytest.raises(RuntimeError, match="before commit"):
+            receipt_api.put_execution_receipt("board", "card", 5, form, key, actor)
+        assert moves == []
+        with engine.connect() as connection:
+            assert connection.execute(text("SELECT count(*) FROM execution_receipt")).scalar() == 0
+            assert connection.execute(text("SELECT project_column_id FROM card WHERE id=100")).scalar() == 1
+        monkeypatch.setattr(receipt_api, "execution_readiness_uow", receipt_uow)
+        first = receipt_api.put_execution_receipt("board", "card", 5, form, key, actor)
         # Simulate a missing derived row after a previous receipt was stored.
         with engine.begin() as connection:
             connection.execute(text("DELETE FROM execution_checklist_projection WHERE item_uid='user-item'"))
         retried = form.model_copy(update={"occurred_at": datetime.now(UTC)})
-        second = receipt_api.put_execution_receipt("board", "card", 5, retried, key)
+        second = receipt_api.put_execution_receipt("board", "card", 5, retried, key, actor)
         assert json.loads(first.body)["created"] is True
         assert json.loads(second.body)["created"] is False
+        assert moves == [(actor, 10, 100, 1, 2, 1)]
         with engine.connect() as connection:
             assert connection.execute(text("SELECT count(*) FROM execution_receipt")).scalar() == 1
             projected = connection.execute(
@@ -131,7 +156,8 @@ def test_native_receipt_is_idempotent_and_never_writes_user_description(monkeypa
         assert len(history[0]["checklist_projection"]) == 2
         changed = form.model_copy(update={"summary": "different result"})
         with pytest.raises(receipt_api.ApiException.Conflict_409):
-            receipt_api.put_execution_receipt("board", "card", 5, changed, key)
+            receipt_api.put_execution_receipt("board", "card", 5, changed, key, actor)
+        assert len(moves) == 1
         with engine.connect() as connection:
             assert connection.execute(text("SELECT count(*) FROM execution_receipt")).scalar() == 1
     finally:

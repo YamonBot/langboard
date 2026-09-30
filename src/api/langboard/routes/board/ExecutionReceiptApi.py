@@ -1,5 +1,6 @@
 """Native, idempotent execution receipts for a board card generation."""
 
+from collections.abc import Callable
 from datetime import datetime
 from hashlib import sha256
 from json import dumps
@@ -18,12 +19,13 @@ from langboard_shared.core.routing import (
     form_model,
 )
 from langboard_shared.core.schema import OpenApiSchema
-from langboard_shared.domain.models import Card, Project, ProjectRole
+from langboard_shared.domain.models import Bot, Card, Project, ProjectColumn, ProjectRole, User
 from langboard_shared.domain.models.ProjectRole import ProjectRoleAction
+from langboard_shared.domain.services import DomainService
 from langboard_shared.filter import RoleFilter
 from langboard_shared.helpers import InfraHelper
 from langboard_shared.infrastructure.repositories import Repository
-from langboard_shared.security import RoleFinder
+from langboard_shared.security import Auth, RoleFinder
 from langboard_shared.tasks.webhooks.ExecutionReadinessUow import current_execution, execution_readiness_uow
 from pydantic import Field, field_validator
 from sqlalchemy import select, text
@@ -141,7 +143,19 @@ def _reconcile_machine_checklist(db: DbSession, card_id: int, generation: int, p
         )
 
 
-def _move_to_review(db: DbSession, card_id: int, project_id: int) -> bool:
+def _review_move_notification(
+    actor: User | Bot, project_id: int, card_id: int, old_column_id: int, new_column_id: int
+) -> Callable[[], None] | None:
+    records = InfraHelper.get_records_with_foreign_by_params((Project, project_id), (Card, card_id))
+    old_column = InfraHelper.get_by_id_like(ProjectColumn, old_column_id)
+    new_column = InfraHelper.get_by_id_like(ProjectColumn, new_column_id)
+    if not records or old_column is None or new_column is None:
+        return None
+    project, card = records
+    return lambda: DomainService().card.notify_order_changed(actor, project, card, old_column, new_column)
+
+
+def _move_to_review(db: DbSession, card_id: int, project_id: int, actor: User | Bot) -> bool:
     row = db.exec(
         select(text("is_enabled"), text("column_semantic_ids"))
         .select_from(text("project_execution_binding"))
@@ -189,6 +203,9 @@ def _move_to_review(db: DbSession, card_id: int, project_id: int) -> bool:
         """),
         params={"card_id": card_id, "target_id": target_id, "next_order": next_order},
     )
+    notification = _review_move_notification(actor, project_id, card_id, source[0], target_id)
+    if notification is not None:
+        db.after_commit(notification)
     return True
 
 
@@ -207,6 +224,7 @@ def put_execution_receipt(
     generation: int,
     form: PutExecutionReceiptForm,
     idempotency_key: str = Header(..., alias="Idempotency-Key"),
+    user_or_bot: User | Bot = Auth.scope("all"),  # noqa: B008 - FastAPI authentication dependency
 ) -> JsonResponse:
     records = InfraHelper.get_records_with_foreign_by_params((Project, project_uid), (Card, card_uid))
     if not records:
@@ -260,7 +278,7 @@ def put_execution_receipt(
             raise ApiException.Conflict_409()
         _reconcile_machine_checklist(db, card.id, generation, saved[2])
         if created and payload["status"] in {"review_ready", "completed", "success"}:
-            _move_to_review(db, card.id, project.id)
+            _move_to_review(db, card.id, project.id, user_or_bot)
     return JsonResponse(content={"receipt": saved[2], "created": created, "generation": generation})
 
 
