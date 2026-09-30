@@ -14,6 +14,7 @@ os.environ.setdefault("PROJECT_NAME", "langboard")
 # Match application startup before importing execution routes independently.
 from langboard_shared.domain.services import DomainService  # noqa: F401
 
+
 # isort: split
 from langboard.routes.board import ExecutionReceiptApi as receipt_api
 from langboard_shared.core.db import DbSession
