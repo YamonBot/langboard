@@ -216,7 +216,7 @@ def _move_to_review(db: DbSession, card_id: int, project_id: int, actor: User | 
     description="Store one receipt per execution generation, separately from the user card description.",
     responses=OpenApiSchema().suc({"receipt": "object", "created": "boolean"}).auth().forbidden().get(),
 )
-@RoleFilter.add(ProjectRole, [ProjectRoleAction.Update], RoleFinder.project)
+@RoleFilter.add(ProjectRole, [ProjectRoleAction.CardUpdate], RoleFinder.project)
 @AuthFilter.add()
 def put_execution_receipt(
     project_uid: str,
