@@ -117,9 +117,7 @@ def _reconcile_machine_checklist(db: DbSession, card_id: int, generation: int, p
     pr_urls = {artifact["url"] for artifact in payload["artifacts"] if artifact["type"] == "pull_request"}
     reviewable = payload["status"] in {"review_ready", "completed", "success"}
     for evidence in payload["checklist_evidence"]:
-        checked = reviewable and evidence["kind"] == "pr_submitted" and bool(
-            pr_urls.intersection(evidence["refs"])
-        )
+        checked = reviewable and evidence["kind"] == "pr_submitted" and bool(pr_urls.intersection(evidence["refs"]))
         db.exec(
             text("""
                 INSERT INTO execution_checklist_projection(
@@ -159,9 +157,7 @@ def _move_to_review(db: DbSession, card_id: int, project_id: int) -> bool:
         return False
     target_id = review_ids[0]
     source = db.exec(
-        select(text("project_column_id"))
-        .select_from(text("card"))
-        .where(text("id = :card_id")),
+        select(text("project_column_id")).select_from(text("card")).where(text("id = :card_id")),
         params={"card_id": card_id},
     ).first()
     if source is None or row[1].get(str(source[0])) not in {"ready", "active"}:
@@ -218,7 +214,9 @@ def put_execution_receipt(
     # The same report can be retried with a new transport timestamp. Identity
     # and semantic content stay fixed; preserve the first occurred_at in storage.
     semantic = {key: value for key, value in payload.items() if key != "occurred_at"}
-    content_hash = sha256(dumps(semantic, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()).hexdigest()
+    content_hash = sha256(
+        dumps(semantic, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()
+    ).hexdigest()
     with execution_readiness_uow() as execution:
         db = execution.db
         execution.watch([card.id])

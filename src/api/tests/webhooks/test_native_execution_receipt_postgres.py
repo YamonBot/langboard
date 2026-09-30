@@ -1,7 +1,7 @@
 import json
 import os
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 import pytest
 from alembic.migration import MigrationContext
@@ -12,11 +12,13 @@ from sqlalchemy import create_engine, text
 os.environ.setdefault("PROJECT_NAME", "langboard")
 
 # Match application startup before importing execution routes independently.
-from langboard_shared.domain.services import DomainService  # noqa: E402,F401
-from langboard.routes.board import ExecutionReceiptApi as receipt_api  # noqa: E402
-from langboard_shared.core.db import DbSession  # noqa: E402
-from langboard_shared.core.db.DbEngine import DbEngine  # noqa: E402
-from langboard_shared.tasks.webhooks import ExecutionReadinessUow as readiness_module  # noqa: E402
+from langboard_shared.domain.services import DomainService  # noqa: F401
+
+# isort: split
+from langboard.routes.board import ExecutionReceiptApi as receipt_api
+from langboard_shared.core.db import DbSession
+from langboard_shared.core.db.DbEngine import DbEngine
+from langboard_shared.tasks.webhooks import ExecutionReadinessUow as readiness_module
 
 
 def test_native_receipt_is_idempotent_and_never_writes_user_description(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -29,13 +31,23 @@ def test_native_receipt_is_idempotent_and_never_writes_user_description(monkeypa
         connection.execute(text("DROP TABLE IF EXISTS execution_receipt"))
         connection.execute(text("DROP TABLE IF EXISTS execution_outbox"))
         connection.execute(text("DROP TABLE IF EXISTS card_execution_generation"))
-        connection.execute(text("CREATE TABLE card (id bigint PRIMARY KEY, description text NOT NULL, project_column_id bigint NOT NULL, \"order\" integer NOT NULL, updated_at timestamptz NOT NULL, deleted_at timestamptz)"))
+        connection.execute(
+            text(
+                'CREATE TABLE card (id bigint PRIMARY KEY, description text NOT NULL, project_column_id bigint NOT NULL, "order" integer NOT NULL, updated_at timestamptz NOT NULL, deleted_at timestamptz)'
+            )
+        )
         connection.execute(text("INSERT INTO card VALUES (100, 'user-authored markdown', 1, 0, now(), NULL)"))
-        connection.execute(text("CREATE TABLE project_column (id bigint PRIMARY KEY, project_id bigint NOT NULL, deleted_at timestamptz, is_archive boolean NOT NULL)"))
+        connection.execute(
+            text(
+                "CREATE TABLE project_column (id bigint PRIMARY KEY, project_id bigint NOT NULL, deleted_at timestamptz, is_archive boolean NOT NULL)"
+            )
+        )
         connection.execute(text("INSERT INTO project_column VALUES (1, 10, NULL, false), (2, 10, NULL, false)"))
         # Baseline binding shape as the public main history leaves it; the
         # install migration adds the semantic id columns on top.
-        connection.execute(text("CREATE TABLE project_execution_binding (project_id bigint PRIMARY KEY, is_enabled boolean NOT NULL)"))
+        connection.execute(
+            text("CREATE TABLE project_execution_binding (project_id bigint PRIMARY KEY, is_enabled boolean NOT NULL)")
+        )
         module = __import__(
             "langboard.migrations.versions.20260924220000-7ad15b1d0b70",
             fromlist=["upgrade"],
@@ -45,7 +57,7 @@ def test_native_receipt_is_idempotent_and_never_writes_user_description(monkeypa
         connection.execute(
             text(
                 "INSERT INTO project_execution_binding (project_id, is_enabled, column_semantic_ids) "
-                "VALUES (10, true, '{\"1\":\"ready\",\"2\":\"review\"}'::jsonb)"
+                'VALUES (10, true, \'{"1":"ready","2":"review"}\'::jsonb)'
             )
         )
     monkeypatch.setattr(DbEngine, "get_main_engine", lambda: engine)
@@ -54,7 +66,7 @@ def test_native_receipt_is_idempotent_and_never_writes_user_description(monkeypa
         "get_records_with_foreign_by_params",
         lambda *args: (SimpleNamespace(id=10), SimpleNamespace(id=100)),
     )
-    monkeypatch.setattr(receipt_api, "current_execution", lambda card_id, db: (datetime.now(timezone.utc), True, 5))
+    monkeypatch.setattr(receipt_api, "current_execution", lambda card_id, db: (datetime.now(UTC), True, 5))
 
     @contextmanager
     def receipt_uow():
@@ -72,7 +84,7 @@ def test_native_receipt_is_idempotent_and_never_writes_user_description(monkeypa
             {"item_uid": "user-item", "kind": "pr_submitted", "refs": ["https://github.com/example/repo/pull/1"]},
             {"item_uid": "unverified-item", "kind": "manual_note", "refs": ["studio://reports/1"]},
         ],
-        occurred_at=datetime(2026, 9, 24, tzinfo=timezone.utc),
+        occurred_at=datetime(2026, 9, 24, tzinfo=UTC),
     )
     key = "langboard:board:card:5:receipt"
     try:
@@ -80,7 +92,7 @@ def test_native_receipt_is_idempotent_and_never_writes_user_description(monkeypa
         # Simulate a missing derived row after a previous receipt was stored.
         with engine.begin() as connection:
             connection.execute(text("DELETE FROM execution_checklist_projection WHERE item_uid='user-item'"))
-        retried = form.model_copy(update={"occurred_at": datetime.now(timezone.utc)})
+        retried = form.model_copy(update={"occurred_at": datetime.now(UTC)})
         second = receipt_api.put_execution_receipt("board", "card", 5, retried, key)
         assert json.loads(first.body)["created"] is True
         assert json.loads(second.body)["created"] is False
@@ -90,7 +102,10 @@ def test_native_receipt_is_idempotent_and_never_writes_user_description(monkeypa
                 text("SELECT item_uid, is_checked FROM execution_checklist_projection ORDER BY item_uid")
             ).all()
             assert projected == [("unverified-item", False), ("user-item", True)]
-            assert connection.execute(text("SELECT description FROM card WHERE id=100")).scalar() == "user-authored markdown"
+            assert (
+                connection.execute(text("SELECT description FROM card WHERE id=100")).scalar()
+                == "user-authored markdown"
+            )
             assert connection.execute(text("SELECT project_column_id FROM card WHERE id=100")).scalar() == 2
         history = receipt_api.receipt_history(100)
         assert len(history) == 1
