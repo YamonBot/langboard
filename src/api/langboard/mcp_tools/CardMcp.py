@@ -6,6 +6,7 @@ import mimetypes
 from binascii import Error as Base64Error
 from typing import Annotated, Any, Literal
 from fastmcp.exceptions import ValidationError
+from langboard_shared.core.exceptions.RelationshipCycle import RelationshipCycle
 from langboard_shared.core.db import EditorContentModel
 from langboard_shared.core.exceptions.CardDeleteForbidden import CardDeleteForbidden
 from langboard_shared.core.storage import Storage, StorageName
@@ -547,7 +548,10 @@ def apply_card_graph_patch(
     """Apply one approved card graph patch without partial persistence."""
 
     patch = validate_card_graph_patch(project_uid, anchor_card_uid, new_cards, add_edges, remove_relationship_uids)
-    result = service.card_relationship.apply_graph_patch(user_or_bot, *patch)
+    try:
+        result = service.card_relationship.apply_graph_patch(user_or_bot, *patch)
+    except RelationshipCycle as exc:
+        raise ValidationError(f"CARD_GRAPH_CYCLE: {exc}. No graph changes saved; revise the blocks edges.") from exc
     if result is None:
         raise ValueError("Anchor card not found in project")
     return result
