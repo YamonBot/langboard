@@ -1,4 +1,5 @@
 import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { keepPreviousData } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Navigate, useLocation } from "react-router";
 import { DashboardStyledLayout } from "@/components/Layout";
@@ -96,7 +97,7 @@ const BoardProxy = memo((): React.JSX.Element => {
         return <Navigate to={ROUTES.ERROR(EHttpStatus.HTTP_404_NOT_FOUND)} replace />;
     }
 
-    const { data, isFetching, error, refetch } = useGetProject({ uid: projectUID });
+    const { data, isFetching, error, refetch } = useGetProject({ uid: projectUID }, { placeholderData: keepPreviousData });
     const { send: sendBoardBotStatusMap } = useBoardBotStatusMapHandlers({ projectUID });
 
     useEffect(() => {
@@ -150,17 +151,20 @@ const BoardProxy = memo((): React.JSX.Element => {
         };
     }, [data, isFetching, pageRoute, projectUID]);
 
-    if (!data || data.project.uid !== projectUID) {
+    if (!data) {
         return <SkeletonBoard />;
     }
 
-    return <BoardProxyDisplay project={data.project} pageRoute={pageRoute} isFetching={isFetching} />;
+    return (
+        <BoardProxyDisplay project={data.project} pageRoute={pageRoute} isFetching={isFetching} isProjectLoading={data.project.uid !== projectUID} />
+    );
 });
 
 interface IBoardProxyDisplayProps {
     project: Project.TModel;
     pageRoute: string;
     isFetching: bool;
+    isProjectLoading: bool;
 }
 
 function BoardHeaderCardTitle({ card }: { card: ProjectCard.TModel }) {
@@ -168,7 +172,7 @@ function BoardHeaderCardTitle({ card }: { card: ProjectCard.TModel }) {
     return <span className="min-w-0 truncate">{title}</span>;
 }
 
-function BoardProxyDisplay({ pageRoute, isFetching, project }: IBoardProxyDisplayProps): React.JSX.Element {
+function BoardProxyDisplay({ pageRoute, isFetching, isProjectLoading, project }: IBoardProxyDisplayProps): React.JSX.Element {
     const [t] = useTranslation();
     const { setPageAliasRef } = usePageHeader();
     const socket = useSocket();
@@ -233,7 +237,7 @@ function BoardProxyDisplay({ pageRoute, isFetching, project }: IBoardProxyDispla
     } = useBoardController();
     const isCardPage = !!pageRoute && !["graph", "wiki", "settings"].includes(pageRoute);
     const projectTitle = project.useField("title");
-    const { data: boardCardsData } = useGetCards({ project_uid: project.uid }, { enabled: isCardPage });
+    const { data: boardCardsData } = useGetCards({ project_uid: project.uid }, { enabled: isCardPage && !isProjectLoading });
     const activeCard = boardCardsData && isCardPage ? ProjectCard.Model.getModel(pageRoute) : undefined;
     useGetGraphApprovals(
         {
@@ -243,6 +247,7 @@ function BoardProxyDisplay({ pageRoute, isFetching, project }: IBoardProxyDispla
         },
         {
             interceptToast: false,
+            enabled: !isProjectLoading,
         }
     );
     const graphApprovalRequestedHandlers = useBoardGraphApprovalRequestedHandlers({ projectUID: project.uid });
@@ -631,6 +636,8 @@ function BoardProxyDisplay({ pageRoute, isFetching, project }: IBoardProxyDispla
     return (
         <>
             <DashboardStyledLayout
+                inert={isProjectLoading}
+                aria-busy={isProjectLoading}
                 headerNavs={[
                     ...headerNavs,
                     {
@@ -756,7 +763,7 @@ function BoardProxyDisplay({ pageRoute, isFetching, project }: IBoardProxyDispla
                 }
                 className="!p-0"
             >
-                {currentUser && project ? (
+                {!isProjectLoading && currentUser && project ? (
                     <Flex
                         position="relative"
                         w="full"
@@ -820,8 +827,12 @@ function BoardProxyDisplay({ pageRoute, isFetching, project }: IBoardProxyDispla
                     <SkeletonComponent />
                 )}
             </DashboardStyledLayout>
-            <BoardActivityDialog isOpened={isActivityDialogOpened} setIsOpened={setIsActivityDialogOpened} />
-            <BoardChangesDialog projectUID={project.uid} isOpened={isChangesDialogOpened} setIsOpened={setIsChangesDialogOpened} />
+            <BoardActivityDialog isOpened={!isProjectLoading && isActivityDialogOpened} setIsOpened={setIsActivityDialogOpened} />
+            <BoardChangesDialog
+                projectUID={project.uid}
+                isOpened={!isProjectLoading && isChangesDialogOpened}
+                setIsOpened={setIsChangesDialogOpened}
+            />
         </>
     );
 }
