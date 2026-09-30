@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
 import useSearchWikis from "@/controllers/api/wiki/useSearchWikis";
@@ -79,6 +79,7 @@ const ProjectQuickSwitcher = memo((): React.JSX.Element => {
     const navigate = usePageNavigateRef();
     const location = useLocation();
     const [opened, setOpened] = useState(false);
+    const projectNavigation = useRef(false);
     const [searchText, setSearchText] = useState("");
     const wikiQuery = useDebounce(searchText.trim(), 300);
     const { data, isFetching, isLoading } = useGetProjects({ enabled: opened });
@@ -117,8 +118,9 @@ const ProjectQuickSwitcher = memo((): React.JSX.Element => {
     }, []);
 
     const selectProject = (projectUID: string) => {
+        projectNavigation.current = true;
         setOpened(false);
-        navigate(ROUTES.BOARD.MAIN(projectUID));
+        navigate(ROUTES.BOARD.MAIN(projectUID), { state: { commandPaletteFocus: true } });
     };
     const selectRoute = (route: string) => {
         setOpened(false);
@@ -132,6 +134,11 @@ const ProjectQuickSwitcher = memo((): React.JSX.Element => {
     return (
         <Command.Dialog
             open={opened}
+            onCloseAutoFocus={(event) => {
+                if (!projectNavigation.current) return;
+                event.preventDefault();
+                projectNavigation.current = false;
+            }}
             onOpenChange={(open) => {
                 setOpened(open);
                 if (!open) setSearchText("");

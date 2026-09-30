@@ -1,4 +1,5 @@
-import { memo, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
 import CachedImage from "@/components/CachedImage";
 import HedaerNavItems from "@/components/Header/HedaerNavItems";
@@ -22,6 +23,14 @@ const Header = memo(({ navs, title, compact }: IHeaderProps) => {
     const { currentUser } = useAuth();
     const [isOpened, setIsOpen] = useState(false);
     const navigate = usePageNavigateRef();
+    const location = useLocation();
+    const commandTrigger = useRef<HTMLButtonElement>(null);
+
+    useEffect(() => {
+        if (location.state?.commandPaletteFocus === true) {
+            commandTrigger.current?.focus({ preventScroll: true });
+        }
+    }, [location.key, location.state]);
 
     const toDashboard = () => {
         navigate(ROUTES.DASHBOARD.PROJECTS.ALL, { smooth: true });
@@ -138,6 +147,7 @@ const Header = memo(({ navs, title, compact }: IHeaderProps) => {
             >
                 {compact && (
                     <Button
+                        ref={commandTrigger}
                         type="button"
                         variant="outline"
                         size="sm"
