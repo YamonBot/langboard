@@ -221,7 +221,7 @@ def put_execution_receipt(
     content_hash = sha256(dumps(semantic, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()).hexdigest()
     with execution_readiness_uow() as execution:
         db = execution.db
-        execution.watch(card.id)
+        execution.watch([card.id])
         current = current_execution(card.id, db)
         if current is None or current[2] != generation:
             raise ApiException.Conflict_409()

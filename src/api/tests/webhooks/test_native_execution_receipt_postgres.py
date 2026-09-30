@@ -11,9 +11,12 @@ from sqlalchemy import create_engine, text
 
 os.environ.setdefault("PROJECT_NAME", "langboard")
 
+# Match application startup before importing execution routes independently.
+from langboard_shared.domain.services import DomainService  # noqa: E402,F401
 from langboard.routes.board import ExecutionReceiptApi as receipt_api  # noqa: E402
 from langboard_shared.core.db import DbSession  # noqa: E402
 from langboard_shared.core.db.DbEngine import DbEngine  # noqa: E402
+from langboard_shared.tasks.webhooks import ExecutionReadinessUow as readiness_module  # noqa: E402
 
 
 def test_native_receipt_is_idempotent_and_never_writes_user_description(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -56,8 +59,9 @@ def test_native_receipt_is_idempotent_and_never_writes_user_description(monkeypa
     @contextmanager
     def receipt_uow():
         with DbSession.atomic() as db:
-            yield SimpleNamespace(db=db, watch=lambda card_id: None)
+            yield readiness_module.ExecutionReadinessUow(db)
 
+    monkeypatch.setattr(readiness_module, "_scalar", lambda *args, **kwargs: False)
     monkeypatch.setattr(receipt_api, "execution_readiness_uow", receipt_uow)
     form = receipt_api.PutExecutionReceiptForm(
         status="success",
