@@ -158,9 +158,9 @@ export const deleteProjectColumnModel = (
         }
     }
 
-    const cards = ProjectCard.Model.getModels((model) => model.project_column_uid === column.uid || model.project_column_uid === archiveData.uid).sort(
-        (left, right) => left.order - right.order
-    );
+    const cards = ProjectCard.Model.getModels(
+        (model) => model.project_column_uid === column.uid || model.project_column_uid === archiveData.uid
+    ).sort((left, right) => left.order - right.order);
     let archivedCardsCount = 0;
     for (let i = 0; i < cards.length; ++i) {
         const card = cards[i];
