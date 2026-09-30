@@ -22,6 +22,7 @@ from langboard_shared.domain.models import Card, Project, ProjectRole
 from langboard_shared.domain.models.ProjectRole import ProjectRoleAction
 from langboard_shared.filter import RoleFilter
 from langboard_shared.helpers import InfraHelper
+from langboard_shared.infrastructure.repositories.factory.CardRepository import CardRepository
 from langboard_shared.security import RoleFinder
 from langboard_shared.tasks.webhooks.ExecutionReadinessUow import current_execution, execution_readiness_uow
 from pydantic import Field, field_validator
@@ -157,7 +158,7 @@ def _move_to_review(db: DbSession, card_id: int, project_id: int) -> bool:
         return False
     target_id = review_ids[0]
     source = db.exec(
-        select(text("project_column_id")).select_from(text("card")).where(text("id = :card_id")),
+        select(text("project_column_id"), text('"order"')).select_from(text("card")).where(text("id = :card_id")),
         params={"card_id": card_id},
     ).first()
     if source is None or row[1].get(str(source[0])) not in {"ready", "active"}:
@@ -170,15 +171,23 @@ def _move_to_review(db: DbSession, card_id: int, project_id: int) -> bool:
     ).first()
     if target is None:
         return False
+    next_order = db.exec(
+        select(text('COALESCE(MAX("order"), -1) + 1'))
+        .select_from(text("card"))
+        .where(text("project_column_id = :target_id AND deleted_at IS NULL")),
+        params={"target_id": target_id},
+    ).first()[0]
+    CardRepository().update_row_order(
+        card_id, source[0], source[1], next_order, target_id, preserve_shifted_updated_at=True
+    )
     db.exec(
         text("""
             UPDATE card SET project_column_id = :target_id,
-                "order" = (SELECT COALESCE(MAX("order"), -1) + 1 FROM card
-                           WHERE project_column_id = :target_id AND deleted_at IS NULL),
+                "order" = :next_order,
                 updated_at = now()
             WHERE id = :card_id AND project_column_id <> :target_id
         """),
-        params={"card_id": card_id, "target_id": target_id},
+        params={"card_id": card_id, "target_id": target_id, "next_order": next_order},
     )
     return True
 

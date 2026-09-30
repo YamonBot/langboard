@@ -37,7 +37,17 @@ def test_native_receipt_is_idempotent_and_never_writes_user_description(monkeypa
                 'CREATE TABLE card (id bigint PRIMARY KEY, description text NOT NULL, project_column_id bigint NOT NULL, "order" integer NOT NULL, updated_at timestamptz NOT NULL, deleted_at timestamptz)'
             )
         )
-        connection.execute(text("INSERT INTO card VALUES (100, 'user-authored markdown', 1, 0, now(), NULL)"))
+        connection.execute(text("INSERT INTO card VALUES (100, 'user-authored markdown', 1, 1, now(), NULL)"))
+        connection.execute(
+            text("""
+                INSERT INTO card VALUES
+                    (101, 'source before', 1, 0, '2026-09-23T00:00:00Z', NULL),
+                    (102, 'source after', 1, 2, '2026-09-23T00:00:00Z', NULL),
+                    (103, 'review existing', 2, 0, '2026-09-23T00:00:00Z', NULL),
+                    (104, 'source deleted', 1, 99, '2026-09-23T00:00:00Z', now()),
+                    (105, 'review deleted', 2, 99, '2026-09-23T00:00:00Z', now())
+            """)
+        )
         connection.execute(
             text(
                 "CREATE TABLE project_column (id bigint PRIMARY KEY, project_id bigint NOT NULL, deleted_at timestamptz, is_archive boolean NOT NULL)"
@@ -108,6 +118,13 @@ def test_native_receipt_is_idempotent_and_never_writes_user_description(monkeypa
                 == "user-authored markdown"
             )
             assert connection.execute(text("SELECT project_column_id FROM card WHERE id=100")).scalar() == 2
+            assert connection.execute(
+                text('SELECT id, "order" FROM card WHERE deleted_at IS NULL ORDER BY project_column_id, "order"')
+            ).all() == [(101, 0), (102, 1), (103, 0), (100, 1)]
+            assert connection.execute(text('SELECT "order" FROM card WHERE id=104')).scalar() == 99
+            assert connection.execute(text("SELECT updated_at FROM card WHERE id=102")).scalar() == datetime(
+                2026, 9, 23, tzinfo=UTC
+            )
         history = receipt_api.receipt_history(100)
         assert len(history) == 1
         assert history[0]["receipt"]["summary"] == "PR submitted"
