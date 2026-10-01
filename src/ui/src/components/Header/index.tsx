@@ -148,6 +148,7 @@ const Header = memo(({ navs, title, compact, navigationReady = true, mobileNavig
                                 viewTransition
                                 aria-label={t("common.Go to Dashboard")}
                                 className="flex cursor-pointer items-center gap-2 text-lg font-semibold"
+                                onClick={() => setIsOpen(false)}
                             >
                                 <CachedImage src="/images/logo.png" alt="Logo" size="6" />
                             </Link>
