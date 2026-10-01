@@ -78,6 +78,7 @@ function BoardFilter() {
                 <Flex items="center">
                     <Button
                         variant="ghost"
+                        aria-label={t("board.Filters")}
                         className={cn("gap-1 px-2 text-xs xs:px-4 xs:text-sm", countAppliedFilters > 0 ? "rounded-e-none bg-accent/55 xs:pr-2" : "")}
                     >
                         <IconComponent icon="filter" size={{ initial: "3", xs: "4" }} />
