@@ -36,13 +36,6 @@ const useGetCards = (params: IGetCardsForm, options?: TQueryOptions<unknown, IGe
                 interceptToast: options?.interceptToast,
             } as never,
         });
-        const metadataUrl = Utils.String.format(Routing.API.METADATA.PROJECT_CARDS, { uid: params.project_uid });
-        const metadataRes = await api.get<IGetProjectCardMetadataResponse>(metadataUrl, {
-            env: {
-                interceptToast: options?.interceptToast,
-            } as never,
-        });
-
         const cards = res.data.cards.map((card: ProjectCard.Interface) => {
             if (!card.linked_resource) {
                 return card;
@@ -58,14 +51,6 @@ const useGetCards = (params: IGetCardsForm, options?: TQueryOptions<unknown, IGe
         const columnUIDs = new Set<string>(res.data.columns.map((column: ProjectColumn.TModel) => column.uid));
 
         ProjectCard.Model.fromArray(cards, true);
-        const metadataModels: MetadataModel.Interface[] = Object.entries(metadataRes.data.metadata ?? {}).map(([cardUID, metadata]) => ({
-            uid: cardUID,
-            type: "card",
-            metadata,
-            created_at: new Date(),
-            updated_at: new Date(),
-        }));
-        MetadataModel.Model.fromArray(metadataModels, true);
         GlobalRelationshipType.Model.fromArray(res.data.global_relationships, true);
         ProjectColumn.Model.fromArray(res.data.columns, true);
         ProjectChecklist.Model.fromArray(res.data.checklists, true);
@@ -86,6 +71,26 @@ const useGetCards = (params: IGetCardsForm, options?: TQueryOptions<unknown, IGe
         refetchInterval: Infinity,
         refetchOnWindowFocus: false,
     });
+
+    // Optional enrichment must never delay or reject the authorized board snapshot.
+    query(
+        ["get-board-card-metadata", params.project_uid],
+        async () => {
+            const url = Utils.String.format(Routing.API.METADATA.PROJECT_CARDS, { uid: params.project_uid });
+            const res = await api.get<IGetProjectCardMetadataResponse>(url, { env: { interceptToast: false } as never });
+            const models: MetadataModel.Interface[] = Object.entries(res.data.metadata ?? {})
+                .filter(([uid]) => ProjectCard.Model.getModel(uid)?.project_uid === params.project_uid)
+                .map(([uid, metadata]) => ({ uid, type: "card", metadata, created_at: new Date(), updated_at: new Date() }));
+            MetadataModel.Model.fromArray(models, true);
+            return res.data;
+        },
+        {
+            enabled: result.isEnabled && result.isSuccess && !result.isFetching,
+            retry: 0,
+            refetchInterval: Infinity,
+            refetchOnWindowFocus: false,
+        }
+    );
 
     return result;
 };
