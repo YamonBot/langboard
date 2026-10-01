@@ -51,7 +51,9 @@ function Page({ name }: { name: string }) {
                 <p>{location.pathname}</p>
                 <nav className="flex flex-wrap gap-2">
                     <Link to="/dashboard/projects/all">Open Dashboard</Link>
-                    <Link to="/board/fixture">Open Board</Link>
+                    <Link to="/board/fixture" state={{ commandPaletteFocus: true }}>
+                        Open Board
+                    </Link>
                     <Link to="/board/fixture/card">Open Card</Link>
                     <Link to="/board/fixture/wiki">Open Wiki</Link>
                 </nav>

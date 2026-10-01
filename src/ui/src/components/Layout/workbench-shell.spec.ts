@@ -85,3 +85,10 @@ test("a nested mobile menu owns Escape before the context panel", async ({ page 
     await expect(panel).toBeVisible();
     await expect(panel.getByRole("button", { name: "Nested menu", exact: true })).toBeFocused();
 });
+
+test("project navigation focuses the existing palette trigger after the new configuration is ready", async ({ page }) => {
+    await page.goto("/src/components/Layout/workbench-shell.fixture.html");
+    await page.getByRole("link", { name: "Open Board", exact: true }).press("Enter");
+    await expect(page.getByRole("heading", { name: "Board", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Command palette", exact: true })).toBeFocused();
+});
