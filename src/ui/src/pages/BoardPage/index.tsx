@@ -795,7 +795,7 @@ function BoardProxyDisplay({ pageRoute, isFetching, isProjectLoading, project }:
                                         "pointer-events-none absolute inset-0 -z-[9999] overflow-hidden"
                                 )}
                             >
-                                <PageComponent project={project} currentUser={currentUser} />
+                                <PageComponent key={project.uid} project={project} currentUser={currentUser} />
                             </Box>
                             {isCardPage && (
                                 <BoardCardPage
@@ -809,6 +809,7 @@ function BoardProxyDisplay({ pageRoute, isFetching, isProjectLoading, project }:
                             )}
                             {!isCardPage && !selectCardViewType && (isMobile || boardChat || renderedViewType === "board") && (
                                 <BoardFloatingNavigation
+                                    key={project.uid}
                                     project={project}
                                     currentUser={currentUser}
                                     dockEnabled={renderedViewType === "board"}
