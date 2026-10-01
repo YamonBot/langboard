@@ -33,7 +33,7 @@ const ProjectCompactItem = memo(({ project, updateStarredProjects, dense }: IPro
         <ModelRegistry.Project.Provider model={project}>
             <ContextMenu.Root>
                 <ContextMenu.Trigger asChild>
-                    <Flex items="center" className="group rounded-xl border border-transparent pr-2 hover:border-border hover:bg-accent/70">
+                    <Flex items="center" className="group min-w-0 rounded-xl border border-transparent pr-2 hover:border-border hover:bg-accent/70">
                         <Button
                             variant="ghost"
                             className={cn(
@@ -63,7 +63,7 @@ const ProjectCompactItem = memo(({ project, updateStarredProjects, dense }: IPro
                                 <Flex items="center" gap="1.5" className="mt-0.5 min-w-0 text-xs text-muted-foreground">
                                     <span className="truncate">{projectTypeLabel(t, projectType)}</span>
                                     <span aria-hidden="true">·</span>
-                                    <span className="shrink-0">{Utils.String.formatDateDistance(i18n, t, activityAt)}</span>
+                                    <span className="min-w-0 truncate">{Utils.String.formatDateDistance(i18n, t, activityAt)}</span>
                                 </Flex>
                             </Box>
                         </Button>
