@@ -71,18 +71,10 @@ const ProjectQuickSwitcherItem = memo(({ project, active, onSelect }: { project:
 ProjectQuickSwitcherItem.displayName = "Dashboard.ProjectQuickSwitcherItem";
 
 const ProjectQuickSwitcherCards = memo(
-    ({
-        currentProjectUID,
-        projects,
-        openCards,
-        onSelect,
-    }: {
-        currentProjectUID?: string;
-        projects: Project.TModel[];
-        openCards: Parameters<typeof buildCommandPaletteCards>[0];
-        onSelect: (route: string) => void;
-    }) => {
+    ({ currentProjectUID, projects, onSelect }: { currentProjectUID?: string; projects: Project.TModel[]; onSelect: (route: string) => void }) => {
         const [t] = useTranslation();
+        const { currentUser } = useAuth();
+        const openCards = useOpenCards(currentUser?.uid);
         const boardCards = ProjectCard.Model.useModels(
             (card) => card.project_uid === currentProjectUID && card.source_type !== "project_wiki",
             [currentProjectUID]
@@ -121,7 +113,6 @@ ProjectQuickSwitcherCards.displayName = "Dashboard.ProjectQuickSwitcherCards";
 
 const ProjectQuickSwitcher = memo((): React.JSX.Element => {
     const [t] = useTranslation();
-    const { currentUser } = useAuth();
     const navigate = usePageNavigateRef();
     const location = useLocation();
     const [opened, setOpened] = useState(false);
@@ -132,7 +123,6 @@ const ProjectQuickSwitcher = memo((): React.JSX.Element => {
     const wikiQuery = useDebounce(searchText.trim(), 300);
     const { data, isFetching, isLoading } = useGetProjects({ enabled: opened });
     const projects = data?.projects ?? [];
-    const openCards = useOpenCards(currentUser?.uid);
     const sections = useMemo(() => buildProjectQuickSwitcherSections(projects), [projects]);
     const currentProjectUID = location.pathname.startsWith("/board/") ? location.pathname.split("/")[2] : undefined;
     const wikiSearch = useSearchWikis(currentProjectUID, wikiQuery, opened);
@@ -273,7 +263,7 @@ const ProjectQuickSwitcher = memo((): React.JSX.Element => {
                         {t("dashboard.Toggle sidebar")}
                     </Command.Item>
                 </Command.Group>
-                <ProjectQuickSwitcherCards currentProjectUID={currentProjectUID} projects={projects} openCards={openCards} onSelect={selectRoute} />
+                <ProjectQuickSwitcherCards currentProjectUID={currentProjectUID} projects={projects} onSelect={selectRoute} />
                 {opened && searchText.trim() === wikiQuery && wikiSearch.data?.items.length ? (
                     <Command.Group heading={t("board.Wiki")}>
                         {wikiSearch.data.items.map((wiki) => (
