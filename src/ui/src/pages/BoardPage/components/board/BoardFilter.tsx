@@ -22,9 +22,23 @@ export function SkeletonBoardFilter() {
 }
 
 function BoardFilter() {
-    const { project, cards, filters, filterCard, filterMember, filterLabel, navigateWithFilters } = useBoard();
+    const { project, cards, currentUser, filters, filterCard, filterMember, filterLabel, navigateWithFilters } = useBoard();
     const [t] = useTranslation();
     const labels = project.useForeignFieldArray("labels");
+    const creators = useMemo(() => {
+        const choices = new Map<string, string>();
+        for (const member of project.all_members) {
+            if (member.isValidUser() && !project.invited_member_uids.includes(member.uid)) {
+                choices.set(`user/${member.uid}`, `${member.firstname} ${member.lastname}`.trim() || member.username);
+            }
+        }
+        // Historical creators may no longer be members; use only this authorized board's compact card projection.
+        for (const card of cards) {
+            if (card.creator) choices.set(`${card.creator.type}/${card.creator.uid}`, card.creator.name);
+        }
+        choices.delete(`user/${currentUser.uid}`);
+        return [...choices];
+    }, [cards, project.all_members, currentUser.uid]);
 
     const setFilterKeyword = (event: React.KeyboardEvent<HTMLInputElement>) => {
         if (!filters.keyword) {
@@ -89,7 +103,7 @@ function BoardFilter() {
                             />
                         </Label>
                         <Flex direction="col">
-                            <Label>{t("board.filters.Members")}</Label>
+                            <Label>{t("board.filters.Assignee")}</Label>
                             <Flex direction="col" pt="1">
                                 <BoardFilterItem name="members" value="none">
                                     <span>{t("board.filters.No members assigned")}</span>
@@ -115,6 +129,25 @@ function BoardFilter() {
                                     }
                                 />
                             </Flex>
+                        </Flex>
+                        <Flex direction="col">
+                            <Label>{t("board.filters.Creator")}</Label>
+                            <BoardFilterItem name="creators" value="me">
+                                <span>{t("board.filters.Created by me")}</span>
+                            </BoardFilterItem>
+                            <BoardExtendedFilter
+                                filterLangLabel="Select creators"
+                                uncountableItems={["me"]}
+                                filterName="creators"
+                                createFilterItems={() =>
+                                    creators.map(([key, name]) => (
+                                        <BoardFilterItem key={key} name="creators" value={key}>
+                                            <IconComponent icon="pencil" size="4" />
+                                            <span>{name || t("common.Unknown")}</span>
+                                        </BoardFilterItem>
+                                    ))
+                                }
+                            />
                         </Flex>
                         <Flex direction="col">
                             <Label>{t("board.filters.Labels")}</Label>
