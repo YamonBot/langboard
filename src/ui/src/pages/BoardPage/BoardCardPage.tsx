@@ -306,7 +306,9 @@ const BoardCardPageComponent = ({
                                     return;
                                 }
                                 if (
-                                    (event.detail.originalEvent.target as Element)?.closest?.("[data-workbench-explorer], [data-workbench-context]")
+                                    (event.detail.originalEvent.target as Element)?.closest?.(
+                                        "[data-workbench-explorer], [data-workbench-context], [data-command-palette], [data-command-palette-trigger]"
+                                    )
                                 ) {
                                     event.preventDefault();
                                     return;
