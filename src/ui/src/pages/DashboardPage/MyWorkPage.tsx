@@ -94,6 +94,7 @@ export default function MyWorkPage({
     return (
         <section
             ref={panelRef}
+            data-my-work-context={compact ? "" : undefined}
             tabIndex={compact ? -1 : undefined}
             className={cn("mx-auto min-w-0 space-y-5", compact ? "p-3" : "max-w-5xl")}
             aria-label={t("dashboard.My Work")}

@@ -80,7 +80,7 @@ const ProjectQuickSwitcher = memo((): React.JSX.Element => {
     const location = useLocation();
     const [opened, setOpened] = useState(false);
     const projectNavigation = useRef(false);
-    const actionSelected = useRef(false);
+    const actionSelected = useRef<boolean | string>(false);
     const returnFocus = useRef<HTMLElement | null>(null);
     const [searchText, setSearchText] = useState("");
     const wikiQuery = useDebounce(searchText.trim(), 300);
@@ -140,7 +140,7 @@ const ProjectQuickSwitcher = memo((): React.JSX.Element => {
         navigate(route);
     };
     const selectCommand = (eventName: string) => {
-        actionSelected.current = true;
+        actionSelected.current = eventName;
         setOpened(false);
         window.dispatchEvent(new Event(eventName));
     };
@@ -150,7 +150,12 @@ const ProjectQuickSwitcher = memo((): React.JSX.Element => {
             open={opened}
             onCloseAutoFocus={(event) => {
                 event.preventDefault();
-                if (actionSelected.current) return;
+                if (actionSelected.current) {
+                    if (actionSelected.current === WORKBENCH_OPEN_MY_WORK_EVENT) {
+                        document.querySelector<HTMLElement>("[data-my-work-context]")?.focus({ preventScroll: true });
+                    }
+                    return;
+                }
                 const previous = returnFocus.current;
                 if (!projectNavigation.current && previous?.isConnected && previous !== document.body) {
                     previous.focus({ preventScroll: true });
