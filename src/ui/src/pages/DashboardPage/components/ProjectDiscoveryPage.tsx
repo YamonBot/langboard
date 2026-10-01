@@ -151,6 +151,7 @@ const ProjectDiscoveryPage = memo(
                             projects={discoverySections.favorites}
                             updateStarredProjects={updateStars}
                             initialVisibleCount={4}
+                            listClassName="xl:grid-cols-2"
                             dense
                         />
                         <ProjectCompactList
@@ -158,6 +159,7 @@ const ProjectDiscoveryPage = memo(
                             projects={debouncedSearchQuery ? [] : discoverySections.recent}
                             updateStarredProjects={updateStars}
                             initialVisibleCount={4}
+                            listClassName="xl:grid-cols-2"
                             dense
                         />
                     </div>
