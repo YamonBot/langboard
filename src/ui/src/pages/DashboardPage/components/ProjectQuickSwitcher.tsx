@@ -75,10 +75,7 @@ const ProjectQuickSwitcherCards = memo(
         const [t] = useTranslation();
         const { currentUser } = useAuth();
         const openCards = useOpenCards(currentUser?.uid);
-        const boardCards = ProjectCard.Model.useModels(
-            (card) => card.project_uid === currentProjectUID && card.source_type !== "project_wiki",
-            [currentProjectUID]
-        );
+        const boardCards = ProjectCard.Model.useModels((card) => card.project_uid === currentProjectUID && card.source_type !== "project_wiki");
         const projectTitles = useMemo(() => new Map(projects.map((project) => [project.uid, project.title])), [projects]);
         const cards = useMemo(
             () =>
@@ -263,7 +260,12 @@ const ProjectQuickSwitcher = memo((): React.JSX.Element => {
                         {t("dashboard.Toggle sidebar")}
                     </Command.Item>
                 </Command.Group>
-                <ProjectQuickSwitcherCards currentProjectUID={currentProjectUID} projects={projects} onSelect={selectRoute} />
+                <ProjectQuickSwitcherCards
+                    key={currentProjectUID ?? "dashboard"}
+                    currentProjectUID={currentProjectUID}
+                    projects={projects}
+                    onSelect={selectRoute}
+                />
                 {opened && searchText.trim() === wikiQuery && wikiSearch.data?.items.length ? (
                     <Command.Group heading={t("board.Wiki")}>
                         {wikiSearch.data.items.map((wiki) => (
