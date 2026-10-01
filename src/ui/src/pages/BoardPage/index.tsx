@@ -726,6 +726,8 @@ function BoardProxyDisplay({ pageRoute, isFetching, isProjectLoading, project }:
                                 <BoardChangesSidebar projectUID={project.uid} onNavigate={() => isMobile && setActiveSidePanel(undefined)} />
                             ) : workbenchContextMode === "activity" && currentUser ? (
                                 <ActivityList
+                                    key={project.uid}
+                                    className="h-full"
                                     form={{ listType: "ActivityModel", type: "project", project_uid: project.uid }}
                                     currentUser={currentUser}
                                     outerClassName="h-full px-3"
