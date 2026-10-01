@@ -110,6 +110,7 @@ const Header = memo(({ navs, title, compact, navigationReady = true, mobileNavig
                     <Sheet.Trigger asChild>
                         <Button
                             ref={mobileNavigationTriggerRef}
+                            data-mobile-navigation-trigger
                             variant="outline"
                             size="icon"
                             className={compact ? "order-first shrink-0 md:hidden" : "shrink-0 md:hidden"}
