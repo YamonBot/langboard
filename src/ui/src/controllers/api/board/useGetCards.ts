@@ -74,10 +74,10 @@ const useGetCards = (params: IGetCardsForm, options?: TQueryOptions<unknown, IGe
 
     // Optional enrichment must never delay or reject the authorized board snapshot.
     query(
-        ["get-board-card-metadata", params.project_uid],
-        async () => {
+        ["get-board-card-metadata", params.project_uid, result.dataUpdatedAt],
+        async ({ signal }) => {
             const url = Utils.String.format(Routing.API.METADATA.PROJECT_CARDS, { uid: params.project_uid });
-            const res = await api.get<IGetProjectCardMetadataResponse>(url, { env: { interceptToast: false } as never });
+            const res = await api.get<IGetProjectCardMetadataResponse>(url, { signal, env: { interceptToast: false } as never });
             const models: MetadataModel.Interface[] = Object.entries(res.data.metadata ?? {})
                 .filter(([uid]) => ProjectCard.Model.getModel(uid)?.project_uid === params.project_uid)
                 .map(([uid, metadata]) => ({ uid, type: "card", metadata, created_at: new Date(), updated_at: new Date() }));
@@ -85,7 +85,10 @@ const useGetCards = (params: IGetCardsForm, options?: TQueryOptions<unknown, IGe
             return res.data;
         },
         {
-            enabled: result.isEnabled && result.isSuccess && !result.isFetching,
+            // One attempt per successful snapshot; observers cannot retry a failed older snapshot.
+            enabled: (enrichment) => result.isEnabled && result.isSuccess && !result.isFetching && enrichment.state.status !== "error",
+            staleTime: Infinity,
+            gcTime: 0,
             retry: 0,
             refetchInterval: Infinity,
             refetchOnWindowFocus: false,
