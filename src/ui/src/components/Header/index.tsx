@@ -126,12 +126,7 @@ const Header = memo(({ navs, title, compact, navigationReady = true, mobileNavig
                             // A mode selection enters the context panel; cancellation and route
                             // navigation retain the drawer's normal trigger restoration.
                             const panel = mobileContextRef?.current;
-                            if (
-                                mobileSelection.current &&
-                                mobileMenuPath.current === location.pathname &&
-                                panel &&
-                                !panel.closest("[inert]")
-                            ) {
+                            if (mobileSelection.current && mobileMenuPath.current === location.pathname && panel && !panel.closest("[inert]")) {
                                 event.preventDefault();
                                 panel.focus({ preventScroll: true });
                             }
