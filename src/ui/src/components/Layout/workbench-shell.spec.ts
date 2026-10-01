@@ -43,3 +43,45 @@ test("initial shell registration mounts the page once", async ({ page }) => {
     await expect(page.getByRole("heading", { name: "Dashboard", exact: true })).toBeVisible();
     await expect(page.getByTestId("page-mounts")).toHaveText("1");
 });
+
+test("mobile mode selection enters the panel, and explicit dismissal restores navigation focus", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/src/components/Layout/workbench-shell.fixture.html");
+    const trigger = page.getByRole("button", { name: "Toggle navigation menu", exact: true });
+    await trigger.press("Enter");
+    await page.getByRole("dialog").getByRole("button", { name: "Explorer", exact: true }).press("Enter");
+    const panel = page.getByRole("complementary", { name: "Explorer", exact: true });
+    await expect(panel).toBeFocused();
+    await panel.press("Tab");
+    const close = panel.getByRole("button", { name: "Close", exact: true });
+    await expect(close).toBeFocused();
+    await close.press("Escape");
+    await expect(panel).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    await trigger.press("Enter");
+    await page.getByRole("dialog").getByRole("button", { name: "Explorer", exact: true }).press("Enter");
+    await expect(panel).toBeFocused();
+    await panel.press("Tab");
+    await close.press("Enter");
+    await expect(panel).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    // Cancelling the navigation drawer keeps normal trigger restoration.
+    await trigger.press("Enter");
+    await page.getByRole("dialog").press("Escape");
+    await expect(trigger).toBeFocused();
+});
+
+test("a nested mobile menu owns Escape before the context panel", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/src/components/Layout/workbench-shell.fixture.html");
+    await page.getByRole("button", { name: "Toggle navigation menu", exact: true }).press("Enter");
+    await page.getByRole("dialog").getByRole("button", { name: "Explorer", exact: true }).press("Enter");
+    const panel = page.getByRole("complementary", { name: "Explorer", exact: true });
+    await expect(panel).toBeFocused();
+    await panel.getByRole("button", { name: "Nested menu", exact: true }).press("Enter");
+    await expect(page.getByRole("menuitem", { name: "Nested item", exact: true })).toBeVisible();
+    await page.getByRole("menuitem", { name: "Nested item", exact: true }).press("Escape");
+    await expect(page.getByRole("menu")).toHaveCount(0);
+    await expect(panel).toBeVisible();
+    await expect(panel.getByRole("button", { name: "Nested menu", exact: true })).toBeFocused();
+});

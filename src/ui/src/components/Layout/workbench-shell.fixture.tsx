@@ -4,12 +4,26 @@ import { createMemoryRouter, Link, RouterProvider, useLocation } from "react-rou
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import WorkbenchRouteLayout from "./WorkbenchRouteLayout";
 import DashboardStyledLayout from "./DashboardStyledLayout";
+import DropdownMenu from "@/components/base/DropdownMenu";
 import "@/i18n";
 import "@/assets/styles/main.css";
 
 const PageContext = createContext("missing context");
 function SidebarContent() {
-    return <p>{useContext(PageContext)}</p>;
+    return (
+        <>
+            <p>{useContext(PageContext)}</p>
+            <DropdownMenu.Root>
+                <DropdownMenu.Trigger asChild>
+                    <button type="button">Nested menu</button>
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Content>
+                    <DropdownMenu.Item>Nested item</DropdownMenu.Item>
+                </DropdownMenu.Content>
+            </DropdownMenu.Root>
+            <Link to="/board/fixture/card">Sidebar open Card</Link>
+        </>
+    );
 }
 let pageMounts = 0;
 function Page({ name }: { name: string }) {
