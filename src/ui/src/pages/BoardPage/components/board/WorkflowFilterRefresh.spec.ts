@@ -2,9 +2,8 @@ import { expect, test } from "@playwright/test";
 for (const unfinished of [true, false]) {
     for (const count of [0, 3, 500]) {
         test(`workflow changes immediately refresh existing ${count} cards without losing order (unfinished=${unfinished})`, async ({ page }) => {
-            await page.goto(
-                `/src/pages/BoardPage/components/board/WorkflowFilterRefresh.fixture.html?count=${count}${unfinished ? "&filters=unfinished%3Ayes" : ""}`
-            );
+            const filters = unfinished ? "&filters=unfinished%3Ayes" : "";
+            await page.goto(`/src/pages/BoardPage/components/board/WorkflowFilterRefresh.fixture.html?count=${count}${filters}`);
             const rows = page.getByRole("region", { name: "Results" }).locator("p");
             await expect(rows).toHaveCount(count);
             const initial = await rows.evaluateAll((elements) =>
