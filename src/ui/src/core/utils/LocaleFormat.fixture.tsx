@@ -1,3 +1,5 @@
+import DataTablePagination from "@/components/base/DataTable/Pagination";
+import { DataTableProvider } from "@/components/base/DataTable/Provider";
 import { createPlateEditor, Plate } from "platejs/react";
 import { CodeBlockKit } from "@/components/Editor/plugins/code-block-kit";
 import { Editor } from "@/components/plate-ui/editor";
@@ -109,6 +111,14 @@ function Fixture() {
             <div data-testid="outline-counts">
                 <BoardOutlineSidebar cardUID="locale-outline" onRelations={() => {}} />
             </div>
+            <div data-testid="pagination-counts">
+                <DataTableProvider totalRecords={2345} itemsPerPage={1234}>
+                    <DataTablePagination />
+                </DataTableProvider>
+            </div>
+            <output data-testid="numeric-notification">{t("notification.{count} notifications received", { count: 1234 })}</output>
+            <output data-testid="numeric-activity">{t("activity.{count} New Activities", { count: 1234 })}</output>
+            <output data-testid="numeric-approval">{t("bot.{count} pending approvals", { count: 1234 })}</output>
             <output data-testid="relative">{distance}</output>
             <output data-testid="workflow-stage-label">{t("board.Workflow stage display", { stage: "User stage" })}</output>
             <output data-testid="graph-counts">
