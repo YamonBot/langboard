@@ -72,7 +72,7 @@ function Fixture() {
     return (
         <div className="w-full max-w-lg space-y-3 p-3">
             <ProjectCompactList projects={projects} title="Project count" initialVisibleCount={1} updateStarredProjects={() => {}} />
-            <p data-testid="route">
+            <p data-testid="route" className="break-all">
                 {location.pathname}
                 {location.search}
             </p>
