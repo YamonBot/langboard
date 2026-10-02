@@ -92,6 +92,7 @@ function Fixture() {
                 <MarkdownThinkBlock>Fixture content</MarkdownThinkBlock>
             </div>
             <output data-testid="relative">{distance}</output>
+            <output data-testid="workflow-stage-label">{t("board.Workflow stage display", { stage: "User stage" })}</output>
             <output data-testid="graph-counts">
                 {t("board.{cards} cards, {relationships} relationships", { cards: 1234, relationships: 2345 })}
             </output>
