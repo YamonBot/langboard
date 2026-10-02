@@ -43,3 +43,18 @@ for (const width of [1280, 390])
         await expect(page.getByTestId("url")).toHaveText("");
         expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
     });
+
+test("parent and child selections match either across reload", async ({ page }) => {
+    await page.goto("/src/pages/BoardPage/components/board/BoardFilter.fixture.html?filters=parents%3Ab%2Cchildren%3Ab");
+    const results = page.getByRole("region", { name: "Results" });
+    await expect(results).toContainText("Ready mine");
+    await expect(results).toContainText("Active mine");
+    await expect(results).toContainText("Ready unassigned");
+    await page.reload();
+    await expect(results).toContainText("Ready mine");
+    await expect(results).toContainText("Ready unassigned");
+    await page.getByRole("button", { name: "Remove filter: Parents of: Active mine", exact: true }).click();
+    await expect(results).not.toContainText("Ready mine");
+    await expect(results).toContainText("Active mine");
+    await expect(results).toContainText("Ready unassigned");
+});

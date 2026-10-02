@@ -72,7 +72,15 @@ ProjectCard.Model.fromArray(
         project_uid: "fixture",
         description: { content: "", type: "text" },
         labels: [],
-        relationships: [],
+        relationships:
+            card.uid === "a"
+                ? [{ ...base, uid: "ab", relationship_type_uid: "contains", parent_card_uid: "a", child_card_uid: "b" }]
+                : card.uid === "b"
+                  ? [
+                        { ...base, uid: "ab", relationship_type_uid: "contains", parent_card_uid: "a", child_card_uid: "b" },
+                        { ...base, uid: "bc", relationship_type_uid: "contains", parent_card_uid: "b", child_card_uid: "c" },
+                    ]
+                  : [{ ...base, uid: "bc", relationship_type_uid: "contains", parent_card_uid: "b", child_card_uid: "c" }],
         order,
     }))
 );
