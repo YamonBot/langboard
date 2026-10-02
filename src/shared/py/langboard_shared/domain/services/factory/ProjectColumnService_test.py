@@ -103,13 +103,9 @@ def test_options_include_active_and_existing_inactive_but_not_unbound_inactive(m
 
     stages = [stage("released", True), stage("retired", False), stage("hidden", False)]
     monkeypatch.setattr(InfraHelper, "get_all", lambda _: stages)
-    repository = SimpleNamespace(
-        project_column=SimpleNamespace(
-            get_all_by_project=lambda _: [
-                (SimpleNamespace(workflow_stage="retired", is_archive=False), 0),
-                (SimpleNamespace(workflow_stage="hidden", is_archive=True), 0),
-            ]
-        )
-    )
-    service = ProjectColumnService(None, None, repository)
-    assert service.get_workflow_stage_options("p") == [{"key": "released"}, {"key": "retired"}]
+    monkeypatch.setattr(InfraHelper, "get_all_by", lambda *_: [
+        SimpleNamespace(workflow_stage="retired", is_archive=False),
+        SimpleNamespace(workflow_stage="hidden", is_archive=True),
+    ])
+    service = ProjectColumnService(None, None, SimpleNamespace())
+    assert service.get_workflow_stage_options(1) == [{"key": "released"}, {"key": "retired"}]
