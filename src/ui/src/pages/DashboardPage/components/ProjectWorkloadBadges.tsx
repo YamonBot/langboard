@@ -30,9 +30,16 @@ export default function ProjectWorkloadBadges({
     const visible = workloadColumns(columns);
     const maximum = Math.max(0, ...visible.map((column) => column.incomplete_count ?? 0));
     const details = <WorkloadPie columns={visible} total={total ?? 0} />;
-    const graphs = () =>
+    const graphs = (inPopover = false) =>
         visible.map((column) => (
-            <ColumnGraph key={column.uid} column={column} maximum={maximum} details={details} onClick={() => open(column.uid)} />
+            <ColumnGraph
+                key={column.uid}
+                column={column}
+                maximum={maximum}
+                details={details}
+                inPopover={inPopover}
+                onClick={() => open(column.uid)}
+            />
         ));
     return (
         <div
@@ -68,7 +75,7 @@ export default function ProjectWorkloadBadges({
                                   </button>
                               </Popover.Trigger>
                               <Popover.Content className="max-w-64">
-                                  <div className="flex gap-1">{graphs()}</div>
+                                  <div className="flex gap-1">{graphs(true)}</div>
                                   {details}
                               </Popover.Content>
                           </Popover.Root>
@@ -93,11 +100,13 @@ function ColumnGraph({
     column,
     maximum,
     details,
+    inPopover,
     onClick,
 }: {
     column: ProjectColumn.TModel;
     maximum: number;
     details: ReactNode;
+    inPopover: boolean;
     onClick: () => void;
 }) {
     const [t] = useTranslation();
@@ -106,7 +115,7 @@ function ColumnGraph({
     if (count === undefined) return null;
     const ratio = maximum > 0 ? Math.min(1, Math.max(0, count / maximum)) : 0;
     return (
-        <Tooltip.Root>
+        <Tooltip.Root open={inPopover ? false : undefined}>
             <Tooltip.Trigger asChild>
                 <button
                     type="button"

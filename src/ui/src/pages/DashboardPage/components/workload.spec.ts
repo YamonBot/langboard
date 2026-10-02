@@ -36,6 +36,7 @@ for (const width of [1280, 390]) {
         if (width < 400) {
             await favorites.getByRole("button", { name: "Unfinished by status", exact: true }).press("Enter");
             await expect(page.getByRole("dialog").locator("[data-workload-pie]")).toBeVisible();
+            await expect(page.getByRole("tooltip")).toHaveCount(0);
             await expect(page.getByRole("dialog")).toContainText("Active");
             await page.keyboard.press("Escape");
         } else {
