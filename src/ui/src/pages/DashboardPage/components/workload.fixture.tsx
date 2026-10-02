@@ -23,11 +23,18 @@ function Fixture() {
                 <ProjectWorkloadBadges projectUID="fixture" />
             </section>
             <section aria-label="Favorites">
-                <ProjectWorkloadBadges projectUID="fixture" compact />
+                <div className="flex min-w-0 items-center gap-1" style={{ containerType: "inline-size", containerName: "project-workload" }}>
+                    <button className="min-w-0 flex-1 truncate" data-testid="favorite-title">
+                        A visible project name
+                    </button>
+                    <ProjectWorkloadBadges projectUID="fixture" compact />
+                </div>
             </section>
             <section aria-label="Explorer">
-                <div className="flex items-center justify-between">
-                    <button>Project title</button>
+                <div className="flex min-w-0 items-center gap-1" style={{ containerType: "inline-size", containerName: "project-workload" }}>
+                    <button className="min-w-0 flex-1 truncate" data-testid="explorer-title">
+                        Project title
+                    </button>
                     <ProjectWorkloadBadges projectUID="fixture" compact />
                 </div>
             </section>
