@@ -21,6 +21,7 @@ on:
       - src/ui/vite.card-load.config.ts
       - src/ui/package.json
       - src/ui/yarn.lock
+      - src/shared/ts/**
   workflow_dispatch:
 
 jobs:
@@ -35,6 +36,12 @@ jobs:
           cache-dependency-path: src/ui/yarn.lock
       - run: corepack enable
       - run: yarn install --frozen-lockfile
+        working-directory: src/shared/ts
+      - run: yarn build
+        working-directory: src/shared/ts
+      - run: yarn install --frozen-lockfile
+        working-directory: src/ui
+      - run: node scripts/verify-core-package.mjs
         working-directory: src/ui
       - run: node --experimental-strip-types scripts/verify-locale-resources.mjs --complete
         working-directory: src/ui
