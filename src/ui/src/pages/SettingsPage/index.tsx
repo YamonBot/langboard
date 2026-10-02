@@ -322,6 +322,11 @@ function SettingsProxyDisplay({ currentUser, isOllamaAvailable }: { currentUser:
     useEffect(() => {
         const foundAvailableRoute = Object.entries(sidebarNavs).find(([_, nav]) => !nav.hidden)?.[0];
         switch (pathname) {
+            case ROUTES.SETTINGS.GLOBAL_LABELS:
+                if (!currentUser.is_admin || !hasSettingRoleAction(...SettingRole.CATEGORIZED_MAP.GlobalLabel)) {
+                    navigate(foundAvailableRoute ?? ROUTES.DASHBOARD.PROJECTS.ALL, { replace: true });
+                }
+                break;
             case ROUTES.SETTINGS.PROJECT_TEMPLATES:
                 if (!currentUser.is_admin) {
                     navigate(foundAvailableRoute ?? ROUTES.DASHBOARD.PROJECTS.ALL, { replace: true });
