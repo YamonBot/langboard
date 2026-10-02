@@ -191,7 +191,7 @@ function BoardCardTitle({ className, useDialogTitle = true }: { className?: stri
     const Title = useDialogTitle ? Dialog.Title : "div";
 
     return (
-        <Title className={cn("min-w-0 flex-1 mr-20 text-2xl xs:mr-[88px]", className)}>
+        <Title className={cn("mr-20 min-w-0 flex-1 text-2xl xs:mr-[88px]", className)}>
             {!isEditing ? (
                 <Flex className="min-w-0">
                     <span
