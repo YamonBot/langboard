@@ -1,5 +1,5 @@
 import "./ProjectWorkloadBadges.css";
-import { useReducer } from "react";
+import { useReducer, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import Popover from "@/components/base/Popover";
 import Tooltip from "@/components/base/Tooltip";
@@ -27,8 +27,13 @@ export default function ProjectWorkloadBadges({
         navigate(`${ROUTES.BOARD.MAIN(projectUID)}${workloadSearch(columnUID)}`, { state: { commandPaletteFocus: true } });
         onNavigate?.();
     };
-    const graphs = (details = false) =>
-        workloadColumns(columns).map((column) => <ColumnGraph key={column.uid} column={column} details={details} onClick={() => open(column.uid)} />);
+    const visible = workloadColumns(columns);
+    const maximum = Math.max(0, ...visible.map((column) => column.incomplete_count ?? 0));
+    const details = <WorkloadPie columns={visible} total={total ?? 0} />;
+    const graphs = () =>
+        visible.map((column) => (
+            <ColumnGraph key={column.uid} column={column} maximum={maximum} details={details} onClick={() => open(column.uid)} />
+        ));
     return (
         <div
             className={`flex min-w-0 flex-wrap items-center gap-1 ${compact ? "max-w-[60%] shrink-0" : ""}`}
@@ -62,7 +67,10 @@ export default function ProjectWorkloadBadges({
                                       ▾
                                   </button>
                               </Popover.Trigger>
-                              <Popover.Content className="flex max-w-64 flex-col gap-1">{graphs(true)}</Popover.Content>
+                              <Popover.Content className="max-w-64">
+                                  <div className="flex gap-1">{graphs()}</div>
+                                  {details}
+                              </Popover.Content>
                           </Popover.Root>
                       </>
                   )
@@ -81,14 +89,22 @@ function CountObserver({ column, refresh }: { column: ProjectColumn.TModel; refr
     return null;
 }
 
-function ColumnGraph({ column, details, onClick }: { column: ProjectColumn.TModel; details: boolean; onClick: () => void }) {
+function ColumnGraph({
+    column,
+    maximum,
+    details,
+    onClick,
+}: {
+    column: ProjectColumn.TModel;
+    maximum: number;
+    details: ReactNode;
+    onClick: () => void;
+}) {
     const [t] = useTranslation();
     const name = column.useField("name");
     const count = column.useField("incomplete_count");
-    const maximum = column.useField("count");
     if (count === undefined) return null;
     const ratio = maximum > 0 ? Math.min(1, Math.max(0, count / maximum)) : 0;
-    const label = `${name} · ${count}/${maximum}`;
     return (
         <Tooltip.Root>
             <Tooltip.Trigger asChild>
@@ -96,31 +112,58 @@ function ColumnGraph({ column, details, onClick }: { column: ProjectColumn.TMode
                     type="button"
                     onClick={onClick}
                     aria-label={t("dashboard.Unfinished in status", { status: name, count })}
-                    className="flex min-w-0 items-center gap-2 rounded px-1 py-0.5 hover:bg-accent focus-visible:outline focus-visible:outline-2"
+                    className="flex min-w-0 items-center rounded px-0.5 py-0.5 hover:bg-accent focus-visible:outline focus-visible:outline-2"
                 >
                     <span
                         aria-hidden="true"
                         data-workload-column={column.uid}
                         data-workload-value={count}
                         data-workload-max={maximum}
-                        className="flex h-7 w-3 shrink-0 items-end overflow-hidden rounded-sm bg-muted"
+                        className="flex h-6 w-2 shrink-0 items-end overflow-hidden rounded-sm bg-muted"
                     >
                         <span
                             className="w-full rounded-sm"
                             style={{ height: `${ratio * 100}%`, background: new Utils.Color.Generator(name).generateRandomColor() }}
                         />
                     </span>
-                    {details && <span className="truncate text-xs tabular-nums">{label}</span>}
                 </button>
             </Tooltip.Trigger>
             <Tooltip.Portal>
-                <Tooltip.Content>
-                    <span>{name}</span>
-                    <span className="ml-2 tabular-nums">
-                        {t("dashboard.Unfinished cards")} {count}/{maximum}
-                    </span>
-                </Tooltip.Content>
+                <Tooltip.Content>{details}</Tooltip.Content>
             </Tooltip.Portal>
         </Tooltip.Root>
+    );
+}
+
+function WorkloadPie({ columns, total }: { columns: ProjectColumn.TModel[]; total: number }) {
+    const [t] = useTranslation();
+    let offset = 0;
+    const segments = columns.map((column) => {
+        const start = offset;
+        offset += total > 0 ? ((column.incomplete_count ?? 0) / total) * 100 : 0;
+        return `${new Utils.Color.Generator(column.name).generateRandomColor()} ${start}% ${offset}%`;
+    });
+    return (
+        <div className="flex max-w-64 items-center gap-3 py-1">
+            <span
+                role="img"
+                aria-label={`${t("dashboard.Unfinished cards")}: ${total}`}
+                data-workload-pie="true"
+                className="size-16 shrink-0 rounded-full bg-muted"
+                style={{ background: total > 0 ? `conic-gradient(${segments.join(",")})` : undefined }}
+            />
+            <div className="flex min-w-0 flex-col gap-1 text-xs">
+                {columns.map((column) => (
+                    <span key={column.uid} className="flex items-center gap-1.5">
+                        <span
+                            className="size-1.5 shrink-0 rounded-full"
+                            style={{ background: new Utils.Color.Generator(column.name).generateRandomColor() }}
+                        />
+                        <span className="truncate">{column.name}</span>
+                        <span className="ml-auto tabular-nums">{column.incomplete_count ?? 0}</span>
+                    </span>
+                ))}
+            </div>
+        </div>
     );
 }
