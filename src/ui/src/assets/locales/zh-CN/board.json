@@ -35,7 +35,7 @@
   "Include archive": "包含归档",
   "No related cards in this view.": "此视图中没有相关卡片。显示未关联卡片或包含归档以查看更多内容。",
   "Graph could not be loaded.": "无法加载关系图。",
-  "{cards} cards, {relationships} relationships": "{{cards}} 张卡片，{{relationships}} 个关联",
+  "{cards} cards, {relationships} relationships": "{{cards, number}} 张卡片，{{relationships, number}} 个关联",
   "Wiki": "维基",
   "Activity": "活动",
   "Settings": "设置",

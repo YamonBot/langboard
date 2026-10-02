@@ -35,7 +35,7 @@
   "Include archive": "アーカイブを含める",
   "No related cards in this view.": "この表示には関連するカードがありません。未接続のカードを表示するか、アーカイブを含めてさらに確認してください。",
   "Graph could not be loaded.": "グラフを読み込めませんでした。",
-  "{cards} cards, {relationships} relationships": "カード {{cards}} 件、関係 {{relationships}} 件",
+  "{cards} cards, {relationships} relationships": "カード {{cards, number}} 件、関係 {{relationships, number}} 件",
   "Wiki": "ウィキ",
   "Activity": "アクティビティ",
   "Settings": "設定",
