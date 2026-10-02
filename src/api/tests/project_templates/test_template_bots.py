@@ -104,7 +104,7 @@ def test_bot_choice_route_returns_only_public_selection_fields():
 
 def test_selected_bot_snapshot_survives_actual_json_save_and_reload(monkeypatch):
     import sqlalchemy as sa
-    from langboard_shared.core.db import DbEngine
+    from langboard_shared.core.db.DbEngine import DbEngine
     from langboard_shared.infrastructure.repositories.factory.ProjectTemplateRepository import ProjectTemplateRepository
 
     engine = sa.create_engine("sqlite://")
