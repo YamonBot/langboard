@@ -119,8 +119,8 @@ function BoardFilter() {
             >
                 <Popover.Trigger asChild>
                     <Button variant="ghost" aria-label={t("board.Filters")} className="gap-1 px-2 text-xs xs:px-4 xs:text-sm">
-                        <IconComponent icon="filter" size={{ initial: "3", xs: "4" }} />
-                        <span className="hidden xs:inline-block">{t("board.Filters")}</span>
+                        <IconComponent icon="list-filter" size={{ initial: "3", xs: "4" }} />
+                        <span>{t("board.Filters")}</span>
                         {countAppliedFilters > 0 && <span>{` (${countAppliedFilters})`}</span>}
                     </Button>
                 </Popover.Trigger>
