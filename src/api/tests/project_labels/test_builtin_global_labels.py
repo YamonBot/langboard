@@ -18,8 +18,8 @@ def test_defaults_are_multilingual_work_types():
     module = migration()
     rows = module._rows_to_insert([])
     assert module.down_revision == "17c82db591a0"
-    assert len(rows) == 6
-    assert len({row["id"] for row in rows}) == 6
+    assert len(rows) == 13
+    assert len({row["id"] for row in rows}) == 13
     assert {row["name"] for row in rows} == {
         "Bug",
         "Feature",
@@ -27,12 +27,20 @@ def test_defaults_are_multilingual_work_types():
         "Documentation",
         "Security",
         "Maintenance",
+        "Frontend",
+        "Backend",
+        "Contract",
+        "Assembly",
+        "Question",
+        "Money",
+        "Pricing",
     }
     for row in rows:
         assert set(row["translations"]) == {"en", "ko", "ja", "zh"}
         assert row["translations"]["en"] == {"name": row["name"], "description": row["description"]}
         assert all(text["name"] and text["description"] for text in row["translations"].values())
         assert len(row["color"]) == 7 and row["color"].startswith("#")
+        assert row["emoji"]
 
 
 def test_upgrade_is_idempotent_and_preserves_existing_definitions(monkeypatch):
@@ -64,16 +72,27 @@ def test_upgrade_is_idempotent_and_preserves_existing_definitions(monkeypatch):
             module,
             "op",
             SimpleNamespace(
-                get_bind=lambda: connection, bulk_insert=lambda table, rows: connection.execute(table.insert(), rows)
+                get_bind=lambda: connection,
+                add_column=lambda *args: connection.execute(
+                    sa.text("ALTER TABLE global_label ADD COLUMN emoji VARCHAR NOT NULL DEFAULT ''")
+                ),
+                bulk_insert=lambda table, rows: connection.execute(table.insert(), rows),
             ),
         )
         module.upgrade()
         before = list(connection.execute(sa.select(table)).mappings())
-        module.upgrade()
-        module.downgrade()
+        module.seed_defaults()
         after = list(connection.execute(sa.select(table)).mappings())
         assert after == before
-        assert len(after) == 6
+        assert len(after) == 13
         preserved = next(row for row in after if row["id"] == 1)
         for key, value in existing.items():
             assert preserved[key] == value
+
+
+def test_development_contract_and_money_pricing_boundaries_are_explicit():
+    rows = {row["name"]: row for row in migration()._rows_to_insert([])}
+    assert "not a legal or commercial agreement" in rows["Contract"]["description"]
+    assert "법률·상거래 계약" in rows["Contract"]["translations"]["ko"]["description"]
+    assert "never authorizes a payment" in rows["Money"]["description"]
+    assert "billing rules" in rows["Pricing"]["description"]
