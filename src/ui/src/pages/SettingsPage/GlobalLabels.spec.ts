@@ -78,6 +78,6 @@ test("global label list prefers exact locale then language while preserving cano
     );
     await page.goto("/src/pages/SettingsPage/GlobalLabels.fixture.html");
     await page.getByRole("navigation").getByRole("button", { name: "📜 지역 계약", exact: true }).click();
-    await expect(page.locator('input[value="Contract"]')).toBeVisible();
+    await expect(page.locator("input[value=Contract]")).toBeVisible();
     await expect(page.locator("textarea")).toHaveValue("English contract");
 });
