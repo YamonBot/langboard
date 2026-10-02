@@ -24,7 +24,7 @@ class ProjectColumnService(BaseDomainService):
             raise ValueError("Unknown or inactive workflow stage")
 
     def get_workflow_stage_options(self, project: TProjectParam) -> list[dict]:
-        columns = [column for column, _ in self.repo.project_column.get_all_by_project(project)]
+        columns = InfraHelper.get_all_by(ProjectColumn, "project_id", InfraHelper.convert_id(project))
         bound_keys = {column.workflow_stage for column in columns if not column.is_archive and column.workflow_stage}
         from ...models import WorkflowStageDefinition
 
