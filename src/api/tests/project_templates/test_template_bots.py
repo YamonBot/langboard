@@ -100,3 +100,48 @@ def test_bot_choice_route_returns_only_public_selection_fields():
     }
     service.internal_bot.get_api_list.assert_called_once_with(is_setting=False)
     assert AuthFilter.get_filtered(get_project_template_bots) == "admin"
+
+
+def test_selected_bot_snapshot_survives_actual_json_save_and_reload(monkeypatch):
+    import sqlalchemy as sa
+    from langboard_shared.core.db import DbEngine
+    from langboard_shared.infrastructure.repositories.factory.ProjectTemplateRepository import ProjectTemplateRepository
+
+    engine = sa.create_engine("sqlite://")
+    ProjectTemplate.__table__.create(engine)
+    monkeypatch.setattr(DbEngine, "get_main_engine", lambda: engine)
+    monkeypatch.setattr(DbEngine, "get_readonly_engine", lambda: engine)
+    repo = ProjectTemplateRepository(None, None)
+    template = ProjectTemplate(
+        name="Stored",
+        columns=["Queue"],
+        internal_bots=[
+            {
+                "internal_bot_uid": "old",
+                "bot_type": "project_chat",
+                "prompt": "Keep instructions",
+                "use_default_prompt": False,
+            }
+        ],
+    )
+    repo.insert(template)
+    bot = SimpleNamespace(bot_type=InternalBotType.ProjectChat, get_uid=lambda: "selected")
+    monkeypatch.setattr(
+        InfraHelper,
+        "get_by_id_like",
+        lambda model, uid: repo.get_by_name("Stored") if model is ProjectTemplate else bot,
+    )
+    service = ProjectTemplateService(None, None, SimpleNamespace(project_template=repo))
+    service.save_columns("Stored", [{"name": "Queue"}], "template", internal_bot_uids=["selected"])
+    loaded = repo.get_by_name("Stored")
+    assert loaded.internal_bots == [
+        {
+            "internal_bot_uid": "selected",
+            "bot_type": "project_chat",
+            "prompt": "Keep instructions",
+            "use_default_prompt": False,
+        }
+    ]
+    service.save_columns("Stored", [{"name": "Queue"}], "template")
+    assert repo.get_by_name("Stored").internal_bots == loaded.internal_bots
+    engine.dispose()
