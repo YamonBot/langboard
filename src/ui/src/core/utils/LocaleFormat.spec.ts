@@ -179,3 +179,16 @@ test("pagination and numeric messages format quantities in all supported languag
         for (const id of ["numeric-notification", "numeric-activity", "numeric-approval"]) await expect(page.getByTestId(id)).toContainText("1,234");
     }
 });
+
+test("large description rail formats grouped ranges and accessible totals", async ({ page }) => {
+    await page.goto("/src/core/utils/LocaleFormat.fixture.html");
+    for (const locale of ["ko-KR", "ja-JP", "zh-CN", "en-US"]) {
+        await page.getByRole("button", { name: locale, exact: true }).click();
+        const lastMarker = page.getByTestId("description-rail").getByRole("button").last();
+        await expect(lastMarker).toHaveAttribute("aria-label", /1,234/);
+        await lastMarker.focus();
+        await expect(page.getByText("1,223–1,234", { exact: true })).toBeVisible();
+        await expect(page.getByText("User block 1222", { exact: true })).toBeVisible();
+        await page.getByRole("button", { name: locale, exact: true }).focus();
+    }
+});

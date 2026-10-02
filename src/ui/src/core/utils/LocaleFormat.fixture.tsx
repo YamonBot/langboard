@@ -1,3 +1,4 @@
+import { DescriptionOverviewRail } from "@/pages/BoardPage/components/card/description/DescriptionOverviewRail";
 import DataTablePagination from "@/components/base/DataTable/Pagination";
 import { DataTableProvider } from "@/components/base/DataTable/Provider";
 import { createPlateEditor, Plate } from "platejs/react";
@@ -35,6 +36,11 @@ const fixtureRelationships = ["contains", "blocks", "references"].map((machine_s
     child_name: `User ${machine_semantic}`,
 })) as GlobalRelationshipType.TModel[];
 const date = new Date(Date.now() - 300000);
+const railChunks = Array.from({ length: 1234 }, (_, index) => ({
+    id: `rail-${index}`,
+    content: `User block ${index}`,
+    metadata: { type: "paragraph" as const, previewText: `User block ${index}`, textLength: 12, isHeavy: false },
+}));
 ProjectCard.Model.fromOne({
     uid: "locale-outline",
     project_uid: "locale-fixture",
@@ -119,6 +125,9 @@ function Fixture() {
             <output data-testid="numeric-notification">{t("notification.{count} notifications received", { count: 1234 })}</output>
             <output data-testid="numeric-activity">{t("activity.{count} New Activities", { count: 1234 })}</output>
             <output data-testid="numeric-approval">{t("bot.{count} pending approvals", { count: 1234 })}</output>
+            <div data-testid="description-rail" className="relative h-96">
+                <DescriptionOverviewRail chunks={railChunks} activeIndex={1233} onNavigate={() => {}} />
+            </div>
             <output data-testid="relative">{distance}</output>
             <output data-testid="workflow-stage-label">{t("board.Workflow stage display", { stage: "User stage" })}</output>
             <output data-testid="graph-counts">

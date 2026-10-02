@@ -88,8 +88,9 @@ export const DescriptionOverviewRail = memo(({ chunks, activeIndex, onNavigate }
                                         </div>
                                     )}
                                     <div className="mt-2 text-[11px] text-muted-foreground/80">
-                                        {marker.rangeLabel ??
-                                            `${formatNumber(marker.index + 1, i18n.language)} / ${formatNumber(chunks.length, i18n.language)}`}
+                                        {marker.range
+                                            ? `${formatNumber(marker.range.start, i18n.language)}–${formatNumber(marker.range.end, i18n.language)}`
+                                            : `${formatNumber(marker.index + 1, i18n.language)} / ${formatNumber(chunks.length, i18n.language)}`}
                                     </div>
                                 </HoverCard.Content>
                             </HoverCard.Portal>
