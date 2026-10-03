@@ -17,7 +17,7 @@ function UserPreferenceLanguageSwitcher({ currentUser, ...props }: IUserPreferen
     const [t, i18n] = useTranslation();
     const { mutateAsync } = useUpdatePreferredLanguage({ interceptToast: true });
     const preferredLang = currentUser.useField("preferred_lang");
-    const { getAvatarHoverCardAttrs } = useUserAvatar();
+    const { getAvatarHoverCardAttrs, setIsHoverLocked } = useUserAvatar();
 
     const handleUpdate = (lang: string) => {
         if (isValidating || lang === preferredLang) {
@@ -53,6 +53,7 @@ function UserPreferenceLanguageSwitcher({ currentUser, ...props }: IUserPreferen
         <LanguageSwitcher
             {...props}
             contentAttrs={getAvatarHoverCardAttrs()}
+            onOpenChange={setIsHoverLocked}
             asForm={{
                 initialValue: normalizeLocale(i18n.language),
                 disabled: isValidating,

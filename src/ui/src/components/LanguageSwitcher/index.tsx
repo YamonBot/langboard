@@ -13,6 +13,7 @@ export interface ILanguageSwitcherProps {
     hideTriggerIcon?: bool;
     size?: ButtonProps["size"];
     contentAttrs?: Record<string, string>;
+    onOpenChange?: (open: boolean) => void;
     asForm?: {
         initialValue: string;
         disabled?: bool;
@@ -27,6 +28,7 @@ function LanguageSwitcher({
     hideTriggerIcon,
     size = "default",
     contentAttrs,
+    onOpenChange,
     asForm,
 }: ILanguageSwitcherProps): React.JSX.Element {
     const [t, i18n] = useTranslation();
@@ -48,7 +50,7 @@ function LanguageSwitcher({
     const langs = LANGUAGE_LOCALES.filter((locale) => locale !== curLang);
 
     return (
-        <DropdownMenu.Root>
+        <DropdownMenu.Root onOpenChange={onOpenChange}>
             <DropdownMenu.Trigger asChild>
                 <Button
                     variant={variant ?? "default"}
