@@ -294,6 +294,14 @@ class Env:
         return self.__get_from_cache("OIDC_ISSUER", "")
 
     @property
+    def OIDC_API_AUDIENCE(self) -> str:
+        return self.__get_from_cache("OIDC_API_AUDIENCE", "")
+
+    @property
+    def EMPLOYEE_IDENTITY_SIGNING_KEY_PATH(self) -> str:
+        return self.__get_from_cache("EMPLOYEE_IDENTITY_SIGNING_KEY_PATH", "")
+
+    @property
     def OIDC_DISCOVERY_URL(self) -> str:
         return self.__get_from_cache("OIDC_DISCOVERY_URL", "")
 

@@ -72,11 +72,14 @@ async def execute_mcp_tool(tool_name: str, request: Request):
         # Check if it's a personal tool group and validate ownership
         if tool_group.user_id is not None:
             api_key = request.scope.get("api_key")
-            if not api_key:
+            if request.scope.get("oidc_claims"):
+                if tool_group.user_id != user_or_bot.id:
+                    raise ApiException.Forbidden_403(ApiErrorCode.PE1001)
+            elif not api_key:
                 raise ApiException.Forbidden_403(ApiErrorCode.PE1001)
 
             # Validate that the API key belongs to the same user as the tool group
-            if api_key.user_id != tool_group.user_id:
+            if api_key and api_key.user_id != tool_group.user_id:
                 raise ApiException.Forbidden_403(ApiErrorCode.PE1001)
 
         try:
@@ -87,7 +90,12 @@ async def execute_mcp_tool(tool_name: str, request: Request):
             raise ApiException.BadRequest_400(ApiErrorCode.VA0000)
 
         context_token = mcp_auth_context.set(
-            {"user_or_bot": user_or_bot, "api_key": request.scope.get("api_key"), "tool_group": tool_group}
+            {
+                "user_or_bot": user_or_bot,
+                "api_key": request.scope.get("api_key"),
+                "tool_group": tool_group,
+                "oidc_claims": request.scope.get("oidc_claims"),
+            }
         )
         try:
             result = await McpServer.mcp.call_tool(tool_name, arguments)
