@@ -2,6 +2,11 @@ import { test, expect, type Page, type Route } from "@playwright/test";
 
 const FIXTURE = "/src/pages/BoardPage/components/board/CardViewerDeepLink.fixture.html";
 
+test.beforeEach(async ({ page }) => {
+    page.on("pageerror", (error) => console.error("Fixture page error:", error.message));
+    page.on("requestfailed", (request) => console.error("Fixture request failure:", new URL(request.url()).pathname, request.failure()?.errorText));
+});
+
 const NOW_ISO = new Date().toISOString();
 
 const FIXTURE_USER = {
