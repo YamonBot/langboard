@@ -421,3 +421,27 @@ for (const width of [390, 1280]) {
         await expect(page.locator("[data-card-viewer]")).toHaveCount(1);
     });
 }
+
+test("touch drag reorders compact tray without restoring", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await mockBoardApi(page);
+    await seedTray(page, 3);
+    await page.goto(FIXTURE);
+    await page.getByRole("button", { name: "Flipped cards · 3", exact: true }).click();
+    const first = await page.locator("[data-card-flip-item=other-0] [data-card-flip-drag-handle]").boundingBox();
+    const last = await page.locator("[data-card-flip-item=other-2]").boundingBox();
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: first!.x + 10, y: first!.y + 15 }] });
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: last!.x + 10, y: last!.y + last!.height / 2 + 8 }] });
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await expect
+        .poll(() =>
+            page.evaluate(() =>
+                JSON.parse(sessionStorage.getItem("langboard-card-flip-session")!).state.trays["fixture-user:fixture-project"].map(
+                    (c: { uid: string }) => c.uid
+                )
+            )
+        )
+        .toEqual(["other-1", "other-2", "other-0"]);
+    await expect(page.locator("[data-card-viewer]")).toHaveCount(1);
+});
