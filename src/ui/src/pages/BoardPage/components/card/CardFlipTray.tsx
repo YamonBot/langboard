@@ -26,6 +26,8 @@ export default function CardFlipTray({
     const [t] = useTranslation();
     const reducedMotion = useReducedMotion();
     const host = useRef<HTMLDivElement>(null);
+    const overflowTrigger = useRef<HTMLButtonElement>(null);
+    const restoreFocusAfterEscape = useRef(false);
     const [capacity, setCapacity] = useState(0);
     const [open, setOpen] = useState(false);
     const identities = JSON.stringify(cards.map((card) => card.uid).sort());
@@ -130,6 +132,7 @@ export default function CardFlipTray({
                 <Popover.Root open={open} onOpenChange={setOpen}>
                     <Popover.Trigger asChild>
                         <Button
+                            ref={overflowTrigger}
                             variant="ghost"
                             className="h-10 shrink-0 gap-1 rounded-full px-2"
                             disabled={disabled}
@@ -139,7 +142,23 @@ export default function CardFlipTray({
                             <span>{capacity ? `+${overflow.length}` : cards.length}</span>
                         </Button>
                     </Popover.Trigger>
-                    <Popover.Content side="top" align="end" className="z-[9999999] max-h-[60dvh] w-[min(22rem,calc(100vw-1rem))] overflow-y-auto p-2">
+                    <Popover.Content
+                        side="top"
+                        align="end"
+                        className="z-[9999999] max-h-[60dvh] w-[min(22rem,calc(100vw-1rem))] overflow-y-auto p-2"
+                        onEscapeKeyDown={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            restoreFocusAfterEscape.current = true;
+                            setOpen(false);
+                        }}
+                        onCloseAutoFocus={(event) => {
+                            if (!restoreFocusAfterEscape.current) return;
+                            event.preventDefault();
+                            restoreFocusAfterEscape.current = false;
+                            overflowTrigger.current?.focus({ preventScroll: true });
+                        }}
+                    >
                         <p className="px-2 pb-2 text-xs text-muted-foreground">{t("card.Flipped cards", { count: cards.length })}</p>
                         {overflow.map(item)}
                     </Popover.Content>

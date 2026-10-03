@@ -352,6 +352,7 @@ test("reduced-motion keeps the compact tray keyboard accessible", async ({ page 
     await page.keyboard.press("Enter");
     await expect(page.getByRole("button", { name: "Restore Card other-0", exact: true })).toBeVisible();
     await page.keyboard.press("Escape");
+    await expect(button).toHaveAttribute("aria-expanded", "false");
     await expect(button).toBeFocused();
     await expect(page.locator("[data-card-viewer]")).toHaveCount(1);
 });
