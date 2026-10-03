@@ -46,7 +46,8 @@ export function matchesWorkload(
     },
     column: Pick<WorkloadColumn, "name" | "is_archive" | "workflow_stage"> | undefined
 ): boolean {
-    if (!column || column.is_archive || column.workflow_stage === "reference" || card.archived_at || card.source_type === "project_wiki") return false;
+    if (!column || column.is_archive || column.workflow_stage === "reference" || card.archived_at || card.source_type === "project_wiki")
+        return false;
     if (card.work_state?.completed === true) return false;
     if (typeof card.work_state?.completed !== "boolean" && !isUnfinishedColumn(column)) return false;
     const progress = card.work_state?.checklist_progress;
