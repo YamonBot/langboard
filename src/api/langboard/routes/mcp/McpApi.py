@@ -5,7 +5,6 @@ from fastapi import Request
 from fastmcp.exceptions import AuthorizationError, ValidationError
 from langboard_shared.core.filter import AuthFilter
 from langboard_shared.core.routing import ApiErrorCode, ApiException, ApiPermission, AppRouter, JsonResponse
-from langboard_shared.core.security import AuthSecurity
 from langboard_shared.domain.models import McpRole, User
 from langboard_shared.domain.models.McpRole import McpRoleAction
 from langboard_shared.domain.services import DomainService
@@ -13,7 +12,7 @@ from langboard_shared.filter import RoleFilter
 from langboard_shared.security import RoleFinder
 from pydantic import BaseModel
 from ...mcp_integration import McpServer, McpTool
-from ...middlewares.McpAuthMiddleware import mcp_auth_context
+from ...middlewares.McpAuthMiddleware import mcp_auth_context, resolve_mcp_tool_group_uid
 
 
 @AppRouter.schema(permission=ApiPermission.Read)
@@ -47,8 +46,8 @@ async def execute_mcp_tool(tool_name: str, request: Request):
     if not isinstance(user_or_bot, User):
         raise ApiException.Forbidden_403(ApiErrorCode.PE1001)
 
-    # Extract and validate MCP tool group UID from header only
-    mcp_tool_group_uid = request.headers.get(AuthSecurity.MCP_TOOL_GROUP_UID_HEADER)
+    # An explicit header remains authoritative; only verified OIDC users get the configured default.
+    mcp_tool_group_uid = resolve_mcp_tool_group_uid(request.headers, request.scope, user_or_bot)
 
     if not mcp_tool_group_uid:
         raise ApiException.BadRequest_400(ApiErrorCode.VA0000)
