@@ -90,7 +90,7 @@ function Result() {
     return (
         <>
             <BoardFilter />
-            <p data-testid="url">{location.search}</p>
+            <p data-testid="url" className="break-all">{location.search}</p>
             <section aria-label="Results">
                 {cards
                     .filter(
