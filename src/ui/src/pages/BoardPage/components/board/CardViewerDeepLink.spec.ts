@@ -18,9 +18,9 @@ const FIXTURE_USER = {
     lastname: "User",
     email: "fixture@example.com",
     username: "fixture",
-    api_key_role_actions: ["all"],
-    setting_role_actions: ["all"],
-    mcp_role_actions: ["all"],
+    api_key_role_actions: ["*"],
+    setting_role_actions: ["*"],
+    mcp_role_actions: ["*"],
     user_groups: [],
     subemails: [],
     preferred_lang: "en",
@@ -41,7 +41,7 @@ const FIXTURE_CARD = {
     order: 0,
     count_comment: 0,
     member_uids: [],
-    current_auth_role_actions: ["all"],
+    current_auth_role_actions: ["*"],
     project_members: [],
     labels: [],
     relationships: [],
@@ -88,7 +88,7 @@ async function mockBoardApi(page: Page, options: IMockOptions = {}): Promise<voi
             starred: false,
             internal_bots: [],
             internal_bot_settings: {},
-            current_auth_role_actions: ["all"],
+            current_auth_role_actions: ["*"],
             labels: [],
             description: "",
             last_viewed_at: NOW_ISO,
@@ -270,7 +270,7 @@ test("card edit mode disables Flip and tray restoration", async ({ page }) => {
             );
         }
     });
-    await page.getByRole("button", { name: "Edit", exact: true }).click();
+    await page.locator("[data-floating-nav-content]").getByRole("button", { name: "Edit", exact: true }).click();
     try {
         await expect(page.getByRole("button", { name: "Cancel", exact: true })).toBeVisible();
         await expect(page.getByRole("button", { name: "Flip card", exact: true })).toBeDisabled();
