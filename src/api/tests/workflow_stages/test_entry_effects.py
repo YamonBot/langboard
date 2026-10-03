@@ -34,7 +34,11 @@ from sqlalchemy import create_engine, event, select, text
 @pytest.fixture
 def flow(monkeypatch, request):
     schema = None
-    engine = create_engine(os.getenv("LANGBOARD_EFFECT_TEST_DATABASE", "sqlite://"))
+    database_url = os.getenv("LANGBOARD_EFFECT_TEST_DATABASE", "sqlite://")
+    engine = create_engine(database_url)
+    if "bouncer" in (engine.url.host or "").lower():
+        engine.dispose()
+        raise ValueError("Workflow schema tests require a direct PostgreSQL connection, not PgBouncer")
     def cleanup():
         engine.dispose()
         if schema is not None:
@@ -51,15 +55,10 @@ def flow(monkeypatch, request):
         with engine.begin() as connection:
             connection.execute(text(f'CREATE SCHEMA "{schema}"'))
 
-        @event.listens_for(engine, "connect")
-        def set_schema(connection, _):
-            previous_autocommit = connection.autocommit
-            connection.autocommit = True
-            try:
-                with connection.cursor() as cursor:
-                    cursor.execute(f'SET search_path TO "{schema}"')
-            finally:
-                connection.autocommit = previous_autocommit
+        @event.listens_for(engine, "begin")
+        def set_schema(connection):
+            # Transaction-local scope cannot leak through a database connection pool.
+            connection.exec_driver_sql(f'SET LOCAL search_path TO "{schema}"')
 
         engine.dispose()
         with engine.begin() as connection:
