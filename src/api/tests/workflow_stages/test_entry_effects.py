@@ -53,8 +53,13 @@ def flow(monkeypatch, request):
 
         @event.listens_for(engine, "connect")
         def set_schema(connection, _):
-            with connection.cursor() as cursor:
-                cursor.execute(f'SET search_path TO "{schema}"')
+            previous_autocommit = connection.autocommit
+            connection.autocommit = True
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute(f'SET search_path TO "{schema}"')
+            finally:
+                connection.autocommit = previous_autocommit
 
         engine.dispose()
         with engine.begin() as connection:
