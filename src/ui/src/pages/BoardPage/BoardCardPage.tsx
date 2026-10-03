@@ -131,7 +131,8 @@ const BoardCardPageComponent = ({
             : document.getElementById(`board-card-${cardUID}`);
         const content = contentRef.current;
         const dockRect = source?.getBoundingClientRect();
-        const workspace = document.querySelector("main")?.getBoundingClientRect();
+        const workspace =
+            document.getElementById("board-scrollport")?.getBoundingClientRect() ?? document.querySelector("main")?.getBoundingClientRect();
         const sourceRect =
             toTray && dockRect
                 ? {

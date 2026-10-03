@@ -43,9 +43,15 @@ function Nav({
     useLayoutEffect(() => {
         if (!fixed || !host.current) return;
         const main = document.querySelector("main");
-        const update = () => host.current?.style.setProperty("--floating-left", `${Math.max(8, (main?.getBoundingClientRect().left ?? 0) + 8)}px`);
+        const board = document.getElementById("board-scrollport");
+        const update = () =>
+            host.current?.style.setProperty(
+                "--floating-left",
+                `${Math.max(main?.getBoundingClientRect().left ?? 0, board?.getBoundingClientRect().left ?? 0) + 8}px`
+            );
         const observer = new ResizeObserver(update);
         if (main) observer.observe(main);
+        if (board) observer.observe(board);
         window.addEventListener("resize", update);
         update();
         return () => {
