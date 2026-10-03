@@ -250,7 +250,9 @@ test("Flip preserves a card, restores it and swaps a second card without mountin
     await otherCard.click();
     await expect(page.locator("[data-card-viewer]")).toHaveCount(1);
     await expect(page.getByText("Card other-0", { exact: true }).first()).toBeVisible();
-    await expect(page.getByRole("button", { name: "Restore Fixture card", exact: true })).toBeVisible();
+    const swappedCard = page.getByRole("button", { name: "Restore Fixture card", exact: true });
+    if (!(await swappedCard.isVisible())) await page.getByRole("button", { name: "Flipped cards · 1", exact: true }).click();
+    await expect(swappedCard).toBeVisible();
 });
 
 test("card edit mode permits draft-preserving Flip while protecting tray swaps", async ({ page }) => {
@@ -387,4 +389,28 @@ test("restoring a suspended card resumes its unsaved title edit", async ({ page 
     await expect(page.locator("[data-card-flip-unsaved]")).toBeVisible();
     await page.getByRole("button", { name: "Restore Fixture card", exact: true }).click();
     await expect(page.getByRole("button", { name: "Cancel", exact: true })).toBeVisible();
+});
+
+test("tray drag changes order without restoring a card", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await mockBoardApi(page);
+    await seedTray(page, 3);
+    await page.goto(FIXTURE);
+    await page.getByRole("button", { name: "Flipped cards · 3", exact: true }).click();
+    const first = await page.locator("[data-card-flip-item=other-0]").boundingBox();
+    const last = await page.locator("[data-card-flip-item=other-2]").boundingBox();
+    await page.mouse.move(first!.x + 12, first!.y + first!.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(last!.x + 12, last!.y + last!.height / 2 + 8, { steps: 20 });
+    await page.mouse.up();
+    await expect
+        .poll(() =>
+            page.evaluate(() =>
+                JSON.parse(sessionStorage.getItem("langboard-card-flip-session")!).state.trays["fixture-user:fixture-project"].map(
+                    (card: { uid: string }) => card.uid
+                )
+            )
+        )
+        .toEqual(["other-1", "other-2", "other-0"]);
+    await expect(page.locator("[data-card-viewer]")).toHaveCount(1);
 });
