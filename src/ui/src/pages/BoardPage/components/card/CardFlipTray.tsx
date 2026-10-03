@@ -87,18 +87,22 @@ export default function CardFlipTray({
         setOpen(false);
         navigate({ pathname: ROUTES.BOARD.CARD(projectUID, card.uid), search: window.location.search });
     };
-    const item = (card: IFlippedCard) => (
+    const item = (card: IFlippedCard, compact = true) => (
         <div key={card.uid} className="flex min-w-0 items-center gap-0.5">
             <Button
                 variant="ghost"
-                className="h-9 min-w-0 flex-1 justify-start gap-1 rounded-full px-2"
+                className={
+                    compact
+                        ? "h-9 min-w-0 flex-1 justify-start gap-1 rounded-full px-2"
+                        : "h-auto min-h-9 min-w-0 flex-1 justify-start gap-1 rounded-xl px-2"
+                }
                 disabled={disabled}
-                title={card.title}
+                title={compact ? card.title : undefined}
                 aria-label={t("card.Restore flipped card", { title: card.title })}
                 onClick={() => select(card)}
             >
                 <IconComponent icon="layers" size="4" />
-                <span className="truncate">{card.title}</span>
+                <span className={compact ? "truncate" : "whitespace-normal break-words text-left"}>{card.title}</span>
             </Button>
             <Button
                 variant="ghost"
@@ -160,7 +164,7 @@ export default function CardFlipTray({
                         }}
                     >
                         <p className="px-2 pb-2 text-xs text-muted-foreground">{t("card.Flipped cards", { count: cards.length })}</p>
-                        {overflow.map(item)}
+                        {overflow.map((card) => item(card, false))}
                     </Popover.Content>
                 </Popover.Root>
             )}
