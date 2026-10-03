@@ -32,8 +32,20 @@ from sqlalchemy import create_engine, event, select, text
 
 
 @pytest.fixture
-def flow(monkeypatch):
+def flow(monkeypatch, request):
+    schema = None
     engine = create_engine(os.getenv("LANGBOARD_EFFECT_TEST_DATABASE", "sqlite://"))
+    def cleanup():
+        engine.dispose()
+        if schema is not None:
+            cleanup_engine = create_engine(engine.url)
+            try:
+                with cleanup_engine.begin() as connection:
+                    connection.execute(text(f'DROP SCHEMA IF EXISTS "{schema}" CASCADE'))
+            finally:
+                cleanup_engine.dispose()
+
+    request.addfinalizer(cleanup)
     if engine.dialect.name == "postgresql":
         schema = "uow236_" + uuid4().hex
         with engine.begin() as connection:
@@ -127,7 +139,6 @@ def flow(monkeypatch):
         summary=summary,
         notifications=notifications,
     )
-    engine.dispose()
 
 
 def snapshot(engine, card_id):
