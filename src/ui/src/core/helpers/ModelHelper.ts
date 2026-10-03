@@ -98,8 +98,8 @@ export const deleteProjectModel = (topic: Exclude<ESocketTopic, ESocketTopic.Non
     });
 };
 
-export const deleteCardModel = (cardUID: string, shouldUnsubscribe: bool) => {
-    useCardFlipStore.getState().removeCard(cardUID);
+export const deleteCardModel = (cardUID: string, shouldUnsubscribe: bool, removeFlippedCard = true) => {
+    if (removeFlippedCard) useCardFlipStore.getState().removeCard(cardUID);
     const socket = useSocketOutsideProvider();
 
     const card = ProjectCard.Model.getModel(cardUID);
