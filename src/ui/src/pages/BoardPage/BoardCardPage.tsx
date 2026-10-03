@@ -9,7 +9,8 @@ import { cn } from "@/core/utils/ComponentUtils";
 import { ProjectCard } from "@/core/models";
 import { useCardFlipStore } from "@/pages/BoardPage/components/card/CardFlipStore";
 import BoardCard from "@/pages/BoardPage/components/card/BoardCard";
-import { BoardCardSectionSaveProvider } from "@/pages/BoardPage/components/card/BoardCardSectionSaveProvider";
+import { flipDraftKey, useCardFlipDraftStore } from "./components/card/CardFlipDraftStore";
+import { BoardCardSectionSaveProvider, useBoardCardSectionSaveActions } from "@/pages/BoardPage/components/card/BoardCardSectionSaveProvider";
 import { EHttpStatus } from "@langboard/core/enums";
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Navigate, useParams } from "react-router";
@@ -43,6 +44,7 @@ const BoardCardPageComponent = ({
 }: IBoardCardPageProps) => {
     const navigate = usePageNavigateRef();
     const { currentUser } = useAuth();
+    const { saveSections } = useBoardCardSectionSaveActions();
     const params = useParams();
     const projectUID = projectUIDProp ?? params.projectUID;
     const cardUID = cardUIDProp ?? params.cardUID;
@@ -389,8 +391,16 @@ const BoardCardPageComponent = ({
                                 isExpanded={isExpanded}
                                 setIsExpanded={setIsExpanded}
                                 onClose={handleCloseRequest}
-                                onFlip={() => {
-                                    if (isCardEditingRef.current || isComposing || !currentUser) return;
+                                onFlip={async () => {
+                                    if (isComposing || !currentUser || closingRef.current) return;
+                                    if (isCardEditingRef.current) {
+                                        const patch = await saveSections();
+                                        if (patch === false) return;
+                                        useCardFlipDraftStore.getState().save(flipDraftKey(currentUser.uid, projectUID, cardUID), {
+                                            ...patch,
+                                            deadline_at: patch.deadline_at instanceof Date ? patch.deadline_at.toISOString() : patch.deadline_at,
+                                        });
+                                    }
                                     const card = ProjectCard.Model.getModel(cardUID);
                                     if (!card) return;
                                     useCardFlipStore

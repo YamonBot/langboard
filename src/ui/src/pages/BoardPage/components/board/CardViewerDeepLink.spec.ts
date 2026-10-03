@@ -245,13 +245,15 @@ test("Flip preserves a card, restores it and swaps a second card without mountin
     expect(saved["fixture-user:fixture-project"].map((card: { uid: string }) => card.uid)).toEqual(["fixture-card", "other-0"]);
     await page.getByRole("button", { name: "Restore Fixture card", exact: true }).click();
     await expect(page.locator("[data-card-viewer]")).toHaveCount(1);
-    await page.getByRole("button", { name: "Restore Card other-0", exact: true }).click();
+    const otherCard = page.getByRole("button", { name: "Restore Card other-0", exact: true });
+    if (!(await otherCard.isVisible())) await page.getByRole("button", { name: "Flipped cards · 1", exact: true }).click();
+    await otherCard.click();
     await expect(page.locator("[data-card-viewer]")).toHaveCount(1);
     await expect(page.getByText("Card other-0", { exact: true }).first()).toBeVisible();
     await expect(page.getByRole("button", { name: "Restore Fixture card", exact: true })).toBeVisible();
 });
 
-test("card edit mode disables Flip and tray restoration", async ({ page }) => {
+test("card edit mode permits draft-preserving Flip while protecting tray swaps", async ({ page }) => {
     await mockBoardApi(page);
     await seedTray(page, 1);
     await page.goto(FIXTURE);
@@ -273,7 +275,7 @@ test("card edit mode disables Flip and tray restoration", async ({ page }) => {
     await page.locator("[data-floating-nav-content]").getByRole("button", { name: "Edit", exact: true }).click();
     try {
         await expect(page.getByRole("button", { name: "Cancel", exact: true })).toBeVisible();
-        await expect(page.getByRole("button", { name: "Flip card", exact: true })).toBeDisabled();
+        await expect(page.getByRole("button", { name: "Flip card", exact: true })).toBeEnabled();
     } catch (error) {
         console.error(
             "Edit transition diagnostics:",
@@ -368,4 +370,21 @@ test("retained comment draft has a tray dot and restore expands from the chip", 
     const viewer = page.locator("[data-card-viewer]");
     await expect(viewer).toHaveCount(1);
     await expect.poll(() => viewer.evaluate((element) => element.style.getPropertyValue("--card-origin-transform"))).toContain("translate(");
+});
+
+test("restoring a suspended card resumes its unsaved title edit", async ({ page }) => {
+    await mockBoardApi(page);
+    await page.addInitScript(() => {
+        sessionStorage.setItem(
+            "langboard-card-flip-drafts",
+            JSON.stringify({ state: { drafts: { "fixture-user:fixture-project:fixture-card": { title: "Suspended title" } } }, version: 0 })
+        );
+    });
+    await page.goto(FIXTURE);
+    await expect(page.getByRole("button", { name: "Cancel", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Flip card", exact: true }).click();
+    await expect(page.locator("[data-card-viewer]")).toHaveCount(0);
+    await expect(page.locator("[data-card-flip-unsaved]")).toBeVisible();
+    await page.getByRole("button", { name: "Restore Fixture card", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Cancel", exact: true })).toBeVisible();
 });

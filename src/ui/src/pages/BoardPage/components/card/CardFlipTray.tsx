@@ -1,3 +1,4 @@
+import { flipDraftKey, useCardFlipDraftStore } from "./CardFlipDraftStore";
 import { useEffect, useRef, useState } from "react";
 import { isAxiosError } from "axios";
 import { Reorder } from "framer-motion";
@@ -24,8 +25,10 @@ export default function CardFlipTray({
     disabled?: boolean;
 }) {
     const cards = useFlippedCards(userUID, projectUID);
+    const suspendedDrafts = useCardFlipDraftStore((state) => state.drafts);
     const drafts = useCardCommentDraftStore((state) => state.draftMap);
     const hasDraft = (card: IFlippedCard) =>
+        !!Object.keys(suspendedDrafts[flipDraftKey(userUID, projectUID, card.uid)] ?? {}).length ||
         !!(drafts[`comment-${projectUID}-${card.uid}`] ?? useCardCommentDraftStore.getState().getDraft(projectUID, card.uid)).trim();
     const navigate = usePageNavigateRef();
     const [t] = useTranslation();
