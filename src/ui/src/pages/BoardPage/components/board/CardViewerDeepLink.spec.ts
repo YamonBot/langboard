@@ -362,7 +362,7 @@ test("retained comment draft has a tray dot and restore expands from the chip", 
     await seedTray(page, 1);
     await page.addInitScript(() => sessionStorage.setItem("comment-fixture-project-other-0", "Unsaved comment"));
     await page.goto(FIXTURE);
-    const chip = page.locator('[data-card-flip-item="other-0"]');
+    const chip = page.locator("[data-card-flip-item=other-0]");
     await expect(chip.locator("[data-card-flip-unsaved]")).toBeVisible();
     await page.getByRole("button", { name: "Restore Card other-0", exact: true }).click();
     const viewer = page.locator("[data-card-viewer]");
