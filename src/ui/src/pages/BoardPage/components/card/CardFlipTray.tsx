@@ -26,9 +26,9 @@ function FlipDraggableItem({
     children: React.ReactNode;
     onDragStart: () => void;
     onPointerStart: () => void;
-    onMove: (targetUID: string) => void;
+    onMove: (orderedUIDs: string[]) => void;
 }) {
-    const pointer = useRef<{ id: number; x: number; y: number } | null>(null);
+    const pointer = useRef<{ id: number; x: number; y: number; axis: string; items: { uid: string; center: number }[] } | null>(null);
     return (
         <Reorder.Item
             value={card}
@@ -44,7 +44,16 @@ function FlipDraggableItem({
                 onPointerDown={(event) => {
                     if (!disabled) {
                         event.preventDefault();
-                        pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
+                        const group = event.currentTarget.closest("[data-card-flip-axis]");
+                        const axis = group?.getAttribute("data-card-flip-axis") ?? "y";
+                        const items = Array.from(group?.querySelectorAll<HTMLElement>("[data-card-flip-item]") ?? []).map((element) => {
+                            const rect = element.getBoundingClientRect();
+                            return {
+                                uid: element.dataset.cardFlipItem!,
+                                center: axis === "x" ? rect.left + rect.width / 2 : rect.top + rect.height / 2,
+                            };
+                        });
+                        pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY, axis, items };
                         event.currentTarget.setPointerCapture(event.pointerId);
                     }
                 }}
@@ -53,14 +62,15 @@ function FlipDraggableItem({
                     if (!start || start.id !== event.pointerId || disabled) return;
                     if (Math.hypot(event.clientX - start.x, event.clientY - start.y) < 5) return;
                     onDragStart();
-                    const group = event.currentTarget.closest("[data-card-flip-axis]");
-                    const axis = group?.getAttribute("data-card-flip-axis");
-                    const coordinate = axis === "x" ? event.clientX : event.clientY;
-                    const target = Array.from(group?.querySelectorAll<HTMLElement>("[data-card-flip-item]") ?? []).find((element) => {
-                        const rect = element.getBoundingClientRect();
-                        return coordinate >= (axis === "x" ? rect.left : rect.top) && coordinate <= (axis === "x" ? rect.right : rect.bottom);
-                    });
-                    if (target?.dataset.cardFlipItem && target.dataset.cardFlipItem !== card.uid) onMove(target.dataset.cardFlipItem);
+                    const coordinate = start.axis === "x" ? event.clientX : event.clientY;
+                    const target = start.items.reduce((closest, item) =>
+                        Math.abs(item.center - coordinate) < Math.abs(closest.center - coordinate) ? item : closest
+                    );
+                    const ordered = start.items.map((item) => item.uid);
+                    const from = ordered.indexOf(card.uid);
+                    const to = ordered.indexOf(target.uid);
+                    ordered.splice(to, 0, ordered.splice(from, 1)[0]);
+                    onMove(ordered);
                 }}
                 onPointerUp={() => {
                     pointer.current = null;
@@ -167,12 +177,9 @@ export default function CardFlipTray({
             onPointerStart={() => {
                 didDrag.current = false;
             }}
-            onMove={(targetUID) => {
-                const ordered = cards.map((item) => item.uid);
-                const from = ordered.indexOf(card.uid);
-                const to = ordered.indexOf(targetUID);
-                ordered.splice(to, 0, ordered.splice(from, 1)[0]);
-                useCardFlipStore.getState().reorder(userUID, projectUID, ordered);
+            onMove={(orderedUIDs) => {
+                const rest = cards.filter((item) => !orderedUIDs.includes(item.uid)).map((item) => item.uid);
+                useCardFlipStore.getState().reorder(userUID, projectUID, [...orderedUIDs, ...rest]);
             }}
             onDragStart={() => {
                 didDrag.current = true;
