@@ -1,7 +1,7 @@
 import { flipDraftKey, useCardFlipDraftStore } from "./CardFlipDraftStore";
 import { useEffect, useRef, useState } from "react";
 import { isAxiosError } from "axios";
-import { Reorder, useDragControls } from "framer-motion";
+import { Reorder } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import useCardCommentDraftStore from "@/core/stores/CardCommentDraftStore";
 import { captureCardOrigin } from "../board/CardAnimation";
@@ -18,19 +18,22 @@ function FlipDraggableItem({
     disabled,
     children,
     onDragStart,
+    onPointerStart,
+    onMove,
 }: {
     card: IFlippedCard;
     disabled: boolean;
     children: React.ReactNode;
     onDragStart: () => void;
+    onPointerStart: () => void;
+    onMove: (targetUID: string) => void;
 }) {
-    const controls = useDragControls();
+    const pointer = useRef<{ id: number; x: number; y: number } | null>(null);
     return (
         <Reorder.Item
             value={card}
             dragListener={false}
-            dragControls={controls}
-            onDragStart={onDragStart}
+            onPointerDownCapture={onPointerStart}
             data-card-flip-item={card.uid}
             className="relative flex min-w-0 items-center gap-0.5 rounded-xl border border-border/70 bg-muted/35"
         >
@@ -41,8 +44,29 @@ function FlipDraggableItem({
                 onPointerDown={(event) => {
                     if (!disabled) {
                         event.preventDefault();
-                        controls.start(event);
+                        pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
+                        event.currentTarget.setPointerCapture(event.pointerId);
                     }
+                }}
+                onPointerMove={(event) => {
+                    const start = pointer.current;
+                    if (!start || start.id !== event.pointerId || disabled) return;
+                    if (Math.hypot(event.clientX - start.x, event.clientY - start.y) < 5) return;
+                    onDragStart();
+                    const group = event.currentTarget.closest("[data-card-flip-axis]");
+                    const axis = group?.getAttribute("data-card-flip-axis");
+                    const coordinate = axis === "x" ? event.clientX : event.clientY;
+                    const target = Array.from(group?.querySelectorAll<HTMLElement>("[data-card-flip-item]") ?? []).find((element) => {
+                        const rect = element.getBoundingClientRect();
+                        return coordinate >= (axis === "x" ? rect.left : rect.top) && coordinate <= (axis === "x" ? rect.right : rect.bottom);
+                    });
+                    if (target?.dataset.cardFlipItem && target.dataset.cardFlipItem !== card.uid) onMove(target.dataset.cardFlipItem);
+                }}
+                onPointerUp={() => {
+                    pointer.current = null;
+                }}
+                onPointerCancel={() => {
+                    pointer.current = null;
                 }}
             >
                 <IconComponent icon="grip-vertical" size="3" />
@@ -137,8 +161,19 @@ export default function CardFlipTray({
     };
     const item = (card: IFlippedCard, compact = true) => (
         <FlipDraggableItem
+            key={card.uid}
             card={card}
             disabled={disabled}
+            onPointerStart={() => {
+                didDrag.current = false;
+            }}
+            onMove={(targetUID) => {
+                const ordered = cards.map((item) => item.uid);
+                const from = ordered.indexOf(card.uid);
+                const to = ordered.indexOf(targetUID);
+                ordered.splice(to, 0, ordered.splice(from, 1)[0]);
+                useCardFlipStore.getState().reorder(userUID, projectUID, ordered);
+            }}
             onDragStart={() => {
                 didDrag.current = true;
             }}
@@ -189,6 +224,7 @@ export default function CardFlipTray({
         <div ref={host} data-card-flip-tray="" className="flex min-w-0 max-w-[35vw] items-center gap-1 md:w-[min(35vw,40rem)]">
             <span role="separator" aria-orientation="vertical" className="mx-1 h-6 w-px shrink-0 bg-border" />
             <Reorder.Group
+                data-card-flip-axis="x"
                 axis="x"
                 values={visible}
                 onReorder={(ordered) =>
@@ -239,6 +275,7 @@ export default function CardFlipTray({
                     >
                         <p className="px-2 pb-2 text-xs text-muted-foreground">{t("card.Flipped cards", { count: cards.length })}</p>
                         <Reorder.Group
+                            data-card-flip-axis="y"
                             axis="y"
                             values={cards}
                             onReorder={(ordered) =>
