@@ -740,7 +740,7 @@ function BoardProxyDisplay({ pageRoute, isFetching, isProjectLoading, project }:
                 mobileWorkbenchContext={
                     isMobile && !selectCardViewType && activeSidePanel
                         ? {
-                              title: isBotScopeOpened ? "Bots" : workbenchContextTitle,
+                              title: isBotScopeOpened ? t("settings.Bots") : workbenchContextTitle,
                               icon: isBotScopeOpened
                                   ? "bot"
                                   : {
