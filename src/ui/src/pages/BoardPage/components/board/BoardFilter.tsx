@@ -207,13 +207,19 @@ function BoardFilter() {
                                 <Flex direction="col">
                                     <Label>{t("common.Workflow stage")}</Label>
                                     {stages.isPending && <Skeleton h="8" />}
-                                    {stages.isError && <Button variant="ghost" onClick={() => stages.refetch()}>{t("common.Retry")}</Button>}
-                                    {stages.data?.filter((stage) => stage.is_active || filters.workflow_stages?.includes(stage.key)).map((stage) => (
-                                        <BoardFilterItem key={stage.key} name="workflow_stages" value={stage.key}>
-                                            <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: stage.color }} />
-                                            {stageName(stage.key)}
-                                        </BoardFilterItem>
-                                    ))}
+                                    {stages.isError && (
+                                        <Button variant="ghost" onClick={() => stages.refetch()}>
+                                            {t("common.Retry")}
+                                        </Button>
+                                    )}
+                                    {stages.data
+                                        ?.filter((stage) => stage.is_active || filters.workflow_stages?.includes(stage.key))
+                                        .map((stage) => (
+                                            <BoardFilterItem key={stage.key} name="workflow_stages" value={stage.key}>
+                                                <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: stage.color }} />
+                                                {stageName(stage.key)}
+                                            </BoardFilterItem>
+                                        ))}
                                 </Flex>
                             )}
                             {category === "members" && (

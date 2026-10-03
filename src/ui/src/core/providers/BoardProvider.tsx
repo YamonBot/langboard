@@ -49,7 +49,17 @@ export interface IFilterMap extends ISearchFilterMap {
     unfinished?: string[];
 }
 
-export const BOARD_FILTER_KEYS = ["keyword", "members", "creators", "labels", "parents", "children", "columns", "workflow_stages", "unfinished"] as (keyof IFilterMap)[];
+export const BOARD_FILTER_KEYS = [
+    "keyword",
+    "members",
+    "creators",
+    "labels",
+    "parents",
+    "children",
+    "columns",
+    "workflow_stages",
+    "unfinished",
+] as (keyof IFilterMap)[];
 
 export interface IBoardContext {
     socket: ISocketContext;
