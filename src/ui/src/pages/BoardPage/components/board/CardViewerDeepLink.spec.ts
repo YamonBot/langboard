@@ -397,9 +397,9 @@ test("tray drag changes order without restoring a card", async ({ page }) => {
     await seedTray(page, 3);
     await page.goto(FIXTURE);
     await page.getByRole("button", { name: "Flipped cards · 3", exact: true }).click();
-    const first = await page.locator("[data-card-flip-item=other-0]").boundingBox();
+    const first = await page.locator("[data-card-flip-item=other-0] [data-card-flip-drag-handle]").boundingBox();
     const last = await page.locator("[data-card-flip-item=other-2]").boundingBox();
-    await page.mouse.move(first!.x + 12, first!.y + first!.height / 2);
+    await page.mouse.move(first!.x + first!.width / 2, first!.y + first!.height / 2);
     await page.mouse.down();
     await page.mouse.move(last!.x + 12, last!.y + last!.height / 2 + 8, { steps: 20 });
     await page.mouse.up();

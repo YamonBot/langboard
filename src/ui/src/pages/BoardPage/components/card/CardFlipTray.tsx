@@ -1,7 +1,7 @@
 import { flipDraftKey, useCardFlipDraftStore } from "./CardFlipDraftStore";
 import { useEffect, useRef, useState } from "react";
 import { isAxiosError } from "axios";
-import { Reorder } from "framer-motion";
+import { Reorder, useDragControls } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import useCardCommentDraftStore from "@/core/stores/CardCommentDraftStore";
 import { captureCardOrigin } from "../board/CardAnimation";
@@ -12,6 +12,45 @@ import { api } from "@/core/helpers/Api";
 import { usePageNavigateRef } from "@/core/hooks/usePageNavigate";
 import { ROUTES } from "@/core/routing/constants";
 import { useCardFlipStore, useFlippedCards, type IFlippedCard } from "./CardFlipStore";
+
+function FlipDraggableItem({
+    card,
+    disabled,
+    children,
+    onDragStart,
+}: {
+    card: IFlippedCard;
+    disabled: boolean;
+    children: React.ReactNode;
+    onDragStart: () => void;
+}) {
+    const controls = useDragControls();
+    return (
+        <Reorder.Item
+            value={card}
+            dragListener={false}
+            dragControls={controls}
+            onDragStart={onDragStart}
+            data-card-flip-item={card.uid}
+            className="relative flex min-w-0 items-center gap-0.5 rounded-xl border border-border/70 bg-muted/35"
+        >
+            <span
+                data-card-flip-drag-handle=""
+                className="flex w-5 shrink-0 cursor-grab items-center justify-center self-stretch text-muted-foreground active:cursor-grabbing"
+                style={{ touchAction: "none" }}
+                onPointerDown={(event) => {
+                    if (!disabled) {
+                        event.preventDefault();
+                        controls.start(event);
+                    }
+                }}
+            >
+                <IconComponent icon="grip-vertical" size="3" />
+            </span>
+            {children}
+        </Reorder.Item>
+    );
+}
 
 export default function CardFlipTray({
     userUID,
@@ -97,17 +136,12 @@ export default function CardFlipTray({
         navigate({ pathname: ROUTES.BOARD.CARD(projectUID, card.uid), search: window.location.search });
     };
     const item = (card: IFlippedCard, compact = true) => (
-        <Reorder.Item
-            value={card}
-            dragListener={!disabled}
-            onPointerDownCapture={() => {
-                didDrag.current = false;
-            }}
+        <FlipDraggableItem
+            card={card}
+            disabled={disabled}
             onDragStart={() => {
                 didDrag.current = true;
             }}
-            data-card-flip-item={card.uid}
-            className="relative flex min-w-0 items-center gap-0.5 rounded-xl border border-border/70 bg-muted/35"
         >
             <Button
                 variant="ghost"
@@ -120,7 +154,10 @@ export default function CardFlipTray({
                 title={compact ? card.title : undefined}
                 aria-label={t("card.Restore flipped card", { title: card.title })}
                 onClick={(event) => {
-                    if (event.detail && didDrag.current) return;
+                    if (event.detail && didDrag.current) {
+                        didDrag.current = false;
+                        return;
+                    }
                     select(card, event.currentTarget);
                 }}
             >
@@ -144,7 +181,7 @@ export default function CardFlipTray({
             >
                 <IconComponent icon="x" size="3" />
             </Button>
-        </Reorder.Item>
+        </FlipDraggableItem>
     );
     const visible = cards.slice(0, capacity);
     const overflow = cards.slice(capacity);
