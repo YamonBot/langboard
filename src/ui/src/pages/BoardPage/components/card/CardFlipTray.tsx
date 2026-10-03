@@ -32,6 +32,7 @@ export default function CardFlipTray({
         !!(drafts[`comment-${projectUID}-${card.uid}`] ?? useCardCommentDraftStore.getState().getDraft(projectUID, card.uid)).trim();
     const navigate = usePageNavigateRef();
     const [t] = useTranslation();
+    const didDrag = useRef(false);
     const host = useRef<HTMLDivElement>(null);
     const overflowTrigger = useRef<HTMLButtonElement>(null);
     const restoreFocusAfterEscape = useRef(false);
@@ -99,6 +100,12 @@ export default function CardFlipTray({
         <Reorder.Item
             value={card}
             dragListener={!disabled}
+            onPointerDownCapture={() => {
+                didDrag.current = false;
+            }}
+            onDragStart={() => {
+                didDrag.current = true;
+            }}
             data-card-flip-item={card.uid}
             className="relative flex min-w-0 items-center gap-0.5 rounded-xl border border-border/70 bg-muted/35"
         >
@@ -112,7 +119,10 @@ export default function CardFlipTray({
                 disabled={disabled}
                 title={compact ? card.title : undefined}
                 aria-label={t("card.Restore flipped card", { title: card.title })}
-                onClick={(event) => select(card, event.currentTarget)}
+                onClick={(event) => {
+                    if (event.detail && didDrag.current) return;
+                    select(card, event.currentTarget);
+                }}
             >
                 <IconComponent icon="square-kanban" size="4" />
                 {hasDraft(card) && (
