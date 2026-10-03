@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from "react";
 import Button, { ButtonProps } from "@/components/base/Button";
 import Flex from "@/components/base/Flex";
 import IconComponent, { TIconName } from "@/components/base/IconComponent";
@@ -38,6 +39,20 @@ function Nav({
     iconSize = "4",
     trailing,
 }: IFloatingNavProps): React.JSX.Element | null {
+    const host = useRef<HTMLDivElement>(null);
+    useLayoutEffect(() => {
+        if (!fixed || !host.current) return;
+        const main = document.querySelector("main");
+        const update = () => host.current?.style.setProperty("--floating-left", `${Math.max(8, (main?.getBoundingClientRect().left ?? 0) + 8)}px`);
+        const observer = new ResizeObserver(update);
+        if (main) observer.observe(main);
+        window.addEventListener("resize", update);
+        update();
+        return () => {
+            observer.disconnect();
+            window.removeEventListener("resize", update);
+        };
+    }, [fixed]);
     const visibleItems = items.filter((item) => !item.hidden);
 
     if (visibleItems.length === 0 && !trailing) {
@@ -46,10 +61,11 @@ function Nav({
 
     return (
         <Flex
+            ref={host}
             justify="center"
             className={cn(
                 "pointer-events-none z-50 w-full shrink-0",
-                fixed && "fixed bottom-2 left-2 right-2 w-auto md:left-1/2 md:right-auto md:-translate-x-1/2",
+                fixed && "fixed bottom-2 left-[var(--floating-left,8px)] right-2 w-auto",
                 className
             )}
         >
@@ -58,7 +74,7 @@ function Nav({
                 items="center"
                 gap="1"
                 className={cn(
-                    "pointer-events-auto w-full rounded-2xl border bg-background/95 p-1 shadow-lg backdrop-blur md:w-auto md:rounded-full",
+                    "pointer-events-auto w-full max-w-full rounded-2xl border bg-background/95 p-1 shadow-lg backdrop-blur md:w-auto md:rounded-full",
                     contentClassName
                 )}
             >

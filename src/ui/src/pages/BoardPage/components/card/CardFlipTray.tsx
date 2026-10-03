@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { isAxiosError } from "axios";
-import { motion, useReducedMotion } from "framer-motion";
+import { Reorder } from "framer-motion";
 import { useTranslation } from "react-i18next";
+import useCardCommentDraftStore from "@/core/stores/CardCommentDraftStore";
+import { captureCardOrigin } from "../board/CardAnimation";
 import Button from "@/components/base/Button";
 import IconComponent from "@/components/base/IconComponent";
 import Popover from "@/components/base/Popover";
@@ -22,9 +24,11 @@ export default function CardFlipTray({
     disabled?: boolean;
 }) {
     const cards = useFlippedCards(userUID, projectUID);
+    const drafts = useCardCommentDraftStore((state) => state.draftMap);
+    const hasDraft = (card: IFlippedCard) =>
+        !!(drafts[`comment-${projectUID}-${card.uid}`] ?? useCardCommentDraftStore.getState().getDraft(projectUID, card.uid)).trim();
     const navigate = usePageNavigateRef();
     const [t] = useTranslation();
-    const reducedMotion = useReducedMotion();
     const host = useRef<HTMLDivElement>(null);
     const overflowTrigger = useRef<HTMLButtonElement>(null);
     const restoreFocusAfterEscape = useRef(false);
@@ -81,14 +85,20 @@ export default function CardFlipTray({
     }, [userUID, projectUID, identities]);
 
     if (!cards.length) return null;
-    const select = (card: IFlippedCard) => {
+    const select = (card: IFlippedCard, element: HTMLElement) => {
         if (disabled) return;
+        captureCardOrigin(projectUID, card.uid, element.getBoundingClientRect());
         useCardFlipStore.getState().swap(userUID, projectUID, card.uid, currentCard);
         setOpen(false);
         navigate({ pathname: ROUTES.BOARD.CARD(projectUID, card.uid), search: window.location.search });
     };
     const item = (card: IFlippedCard, compact = true) => (
-        <div key={card.uid} className="flex min-w-0 items-center gap-0.5">
+        <Reorder.Item
+            value={card}
+            dragListener={!disabled}
+            data-card-flip-item={card.uid}
+            className="relative flex min-w-0 items-center gap-0.5 rounded-xl border border-border/70 bg-muted/35"
+        >
             <Button
                 variant="ghost"
                 className={
@@ -99,9 +109,16 @@ export default function CardFlipTray({
                 disabled={disabled}
                 title={compact ? card.title : undefined}
                 aria-label={t("card.Restore flipped card", { title: card.title })}
-                onClick={() => select(card)}
+                onClick={(event) => select(card, event.currentTarget)}
             >
-                <IconComponent icon="layers" size="4" />
+                <IconComponent icon="square-kanban" size="4" />
+                {hasDraft(card) && (
+                    <span
+                        data-card-flip-unsaved=""
+                        aria-label={t("card.unsavedChanges.Keep editing")}
+                        className="size-1.5 shrink-0 rounded-full bg-amber-400"
+                    />
+                )}
                 <span className={compact ? "truncate" : "whitespace-normal break-words text-left"}>{card.title}</span>
             </Button>
             <Button
@@ -114,24 +131,31 @@ export default function CardFlipTray({
             >
                 <IconComponent icon="x" size="3" />
             </Button>
-        </div>
+        </Reorder.Item>
     );
     const visible = cards.slice(0, capacity);
     const overflow = cards.slice(capacity);
     return (
         <div ref={host} data-card-flip-tray="" className="flex min-w-0 max-w-[35vw] items-center gap-1 md:w-[min(35vw,40rem)]">
             <span role="separator" aria-orientation="vertical" className="mx-1 h-6 w-px shrink-0 bg-border" />
-            {visible.map((card) => (
-                <motion.div
-                    key={card.uid}
-                    className="w-[116px] min-w-0 shrink-0"
-                    initial={reducedMotion ? false : { opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2 }}
-                >
-                    {item(card)}
-                </motion.div>
-            ))}
+            <Reorder.Group
+                axis="x"
+                values={visible}
+                onReorder={(ordered) =>
+                    useCardFlipStore.getState().reorder(
+                        userUID,
+                        projectUID,
+                        [...ordered, ...overflow].map((card) => card.uid)
+                    )
+                }
+                className="flex min-w-0 gap-1"
+            >
+                {visible.map((card) => (
+                    <div key={card.uid} className="w-[116px] min-w-0 shrink-0">
+                        {item(card)}
+                    </div>
+                ))}
+            </Reorder.Group>
             {overflow.length > 0 && (
                 <Popover.Root open={open} onOpenChange={setOpen}>
                     <Popover.Trigger asChild>
@@ -164,7 +188,20 @@ export default function CardFlipTray({
                         }}
                     >
                         <p className="px-2 pb-2 text-xs text-muted-foreground">{t("card.Flipped cards", { count: cards.length })}</p>
-                        {overflow.map((card) => item(card, false))}
+                        <Reorder.Group
+                            axis="y"
+                            values={cards}
+                            onReorder={(ordered) =>
+                                useCardFlipStore.getState().reorder(
+                                    userUID,
+                                    projectUID,
+                                    ordered.map((card) => card.uid)
+                                )
+                            }
+                            className="space-y-1"
+                        >
+                            {cards.map((card) => item(card, false))}
+                        </Reorder.Group>
                     </Popover.Content>
                 </Popover.Root>
             )}
