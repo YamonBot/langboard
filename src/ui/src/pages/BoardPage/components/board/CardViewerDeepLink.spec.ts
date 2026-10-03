@@ -398,7 +398,8 @@ for (const width of [390, 1280]) {
         await seedTray(page, 3);
         await page.goto(FIXTURE);
         const overflow = page.getByRole("button", { name: "Flipped cards · 3", exact: true });
-        const vertical = await overflow.isVisible();
+        const vertical = width < 768;
+        if (vertical) await overflow.waitFor({ state: "visible" });
         if (vertical) await overflow.click();
         const first = await page.locator("[data-card-flip-item=other-0] [data-card-flip-drag-handle]").boundingBox();
         const last = await page.locator("[data-card-flip-item=other-2]").boundingBox();

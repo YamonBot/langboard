@@ -28,7 +28,8 @@ function FlipDraggableItem({
     onPointerStart: () => void;
     onMove: (orderedUIDs: string[]) => void;
 }) {
-    const pointer = useRef<{ id: number; x: number; y: number; axis: string; items: { uid: string; center: number }[] } | null>(null);
+    const stopDrag = useRef<(() => void) | null>(null);
+    useEffect(() => () => stopDrag.current?.(), []);
     return (
         <Reorder.Item
             value={card}
@@ -53,30 +54,33 @@ function FlipDraggableItem({
                                 center: axis === "x" ? rect.left + rect.width / 2 : rect.top + rect.height / 2,
                             };
                         });
-                        pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY, axis, items };
-                        event.currentTarget.setPointerCapture(event.pointerId);
+                        const start = { id: event.pointerId, x: event.clientX, y: event.clientY, axis, items };
+                        const move = (pointerEvent: globalThis.PointerEvent) => {
+                            if (pointerEvent.pointerId !== start.id || !start.items.length) return;
+                            if (Math.hypot(pointerEvent.clientX - start.x, pointerEvent.clientY - start.y) < 5) return;
+                            onDragStart();
+                            const coordinate = start.axis === "x" ? pointerEvent.clientX : pointerEvent.clientY;
+                            const target = start.items.reduce((closest, item) =>
+                                Math.abs(item.center - coordinate) < Math.abs(closest.center - coordinate) ? item : closest
+                            );
+                            const ordered = start.items.map((item) => item.uid);
+                            const from = ordered.indexOf(card.uid);
+                            const to = ordered.indexOf(target.uid);
+                            ordered.splice(to, 0, ordered.splice(from, 1)[0]);
+                            onMove(ordered);
+                        };
+                        const stop = () => {
+                            window.removeEventListener("pointermove", move);
+                            window.removeEventListener("pointerup", stop);
+                            window.removeEventListener("pointercancel", stop);
+                            stopDrag.current = null;
+                        };
+                        stopDrag.current?.();
+                        stopDrag.current = stop;
+                        window.addEventListener("pointermove", move);
+                        window.addEventListener("pointerup", stop);
+                        window.addEventListener("pointercancel", stop);
                     }
-                }}
-                onPointerMove={(event) => {
-                    const start = pointer.current;
-                    if (!start || start.id !== event.pointerId || disabled) return;
-                    if (Math.hypot(event.clientX - start.x, event.clientY - start.y) < 5) return;
-                    onDragStart();
-                    const coordinate = start.axis === "x" ? event.clientX : event.clientY;
-                    const target = start.items.reduce((closest, item) =>
-                        Math.abs(item.center - coordinate) < Math.abs(closest.center - coordinate) ? item : closest
-                    );
-                    const ordered = start.items.map((item) => item.uid);
-                    const from = ordered.indexOf(card.uid);
-                    const to = ordered.indexOf(target.uid);
-                    ordered.splice(to, 0, ordered.splice(from, 1)[0]);
-                    onMove(ordered);
-                }}
-                onPointerUp={() => {
-                    pointer.current = null;
-                }}
-                onPointerCancel={() => {
-                    pointer.current = null;
                 }}
             >
                 <IconComponent icon="grip-vertical" size="3" />
