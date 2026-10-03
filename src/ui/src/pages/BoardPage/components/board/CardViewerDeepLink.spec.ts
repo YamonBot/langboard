@@ -391,8 +391,9 @@ test("restoring a suspended card resumes its unsaved title edit", async ({ page 
     await expect(page.getByRole("button", { name: "Cancel", exact: true })).toBeVisible();
 });
 
-test("tray drag changes order without restoring a card", async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
+for (const width of [390, 1280]) {
+test(`tray drag changes order without restoring a card at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 });
     await mockBoardApi(page);
     await seedTray(page, 3);
     await page.goto(FIXTURE);
@@ -414,3 +415,5 @@ test("tray drag changes order without restoring a card", async ({ page }) => {
         .toEqual(["other-1", "other-2", "other-0"]);
     await expect(page.locator("[data-card-viewer]")).toHaveCount(1);
 });
+
+}
