@@ -1,3 +1,4 @@
+import { useCardFlipStore } from "@/pages/BoardPage/components/card/CardFlipStore";
 import {
     AuthUser,
     ActivityModel,
@@ -26,6 +27,7 @@ import { ESocketTopic } from "@langboard/core/enums";
 export const deleteProjectModel = (topic: Exclude<ESocketTopic, ESocketTopic.None | ESocketTopic.Global>, projectUID: string) => {
     const socket = useSocketOutsideProvider();
 
+    useCardFlipStore.getState().removeProject(projectUID);
     const project = Project.Model.getModel(projectUID);
     if (!project) {
         return;
@@ -97,6 +99,7 @@ export const deleteProjectModel = (topic: Exclude<ESocketTopic, ESocketTopic.Non
 };
 
 export const deleteCardModel = (cardUID: string, shouldUnsubscribe: bool) => {
+    useCardFlipStore.getState().removeCard(cardUID);
     const socket = useSocketOutsideProvider();
 
     const card = ProjectCard.Model.getModel(cardUID);
