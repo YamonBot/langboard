@@ -133,6 +133,7 @@ async function mockBoardApi(page: Page, options: IMockOptions = {}): Promise<voi
         }
         await fulfillWithCors(route, projectPayload);
     });
+    await page.route("**/activity/project/fixture-project/card/*/column-history", (route) => fulfillWithCors(route, { history: [], total_count: 0 }));
     await page.route("**/auth/**", (route) => fulfillWithCors(route, { access_token: "fixture-token", user: FIXTURE_USER, bots: [] }));
 }
 
@@ -254,8 +255,38 @@ test("card edit mode disables Flip and tray restoration", async ({ page }) => {
     await mockBoardApi(page);
     await seedTray(page, 1);
     await page.goto(FIXTURE);
+    await page.evaluate(() => {
+        const events: string[] = [];
+        (window as unknown as { __editEvents: string[] }).__editEvents = events;
+        for (const name of ["pointerdown", "click", "focusin", "focusout"]) {
+            document.addEventListener(
+                name,
+                (event) => {
+                    const target = event.target as HTMLElement;
+                    const label = target.getAttribute("aria-label") ?? target.textContent?.slice(0, 40);
+                    events.push(`${name}:${target.tagName}:${label}:${!!target.closest("[data-dialog-content]")}`);
+                },
+                true
+            );
+        }
+    });
     await page.getByRole("button", { name: "Edit", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Flip card", exact: true })).toBeDisabled();
+    try {
+        await expect(page.getByRole("button", { name: "Cancel", exact: true })).toBeVisible();
+        await expect(page.getByRole("button", { name: "Flip card", exact: true })).toBeDisabled();
+    } catch (error) {
+        console.error(
+            "Edit transition diagnostics:",
+            await page.evaluate(() => ({
+                events: (window as unknown as { __editEvents: string[] }).__editEvents,
+                buttons: Array.from(document.querySelectorAll("[data-floating-nav-content] button")).map((button) => ({
+                    text: button.textContent,
+                    disabled: (button as HTMLButtonElement).disabled,
+                })),
+            }))
+        );
+        throw error;
+    }
     await expect(page.getByRole("button", { name: "Restore Card other-0", exact: true })).toBeDisabled();
     await page.getByRole("button", { name: "Cancel", exact: true }).click();
     await expect(page.getByRole("button", { name: "Flip card", exact: true })).toBeEnabled();
@@ -284,3 +315,43 @@ for (const width of [360, 390, 768, 1440]) {
         });
     }
 }
+
+for (const status of [403, 500]) {
+    test(`tray availability ${status} ${status === 403 ? "removes inaccessible" : "preserves temporarily unavailable"} cards`, async ({ page }) => {
+        await mockBoardApi(page);
+        await seedTray(page, 3);
+        let validated = false;
+        await page.route("**/board/fixture-project/cards/available", async (route) => {
+            if (route.request().method() === "OPTIONS") {
+                await route.fulfill({ status: 204, headers: corsHeaders(route) });
+                return;
+            }
+            validated = true;
+            await route.fulfill({ status, json: { message: "Availability fixture" }, headers: corsHeaders(route) });
+        });
+        await page.goto(FIXTURE);
+        await expect(page.getByRole("button", { name: "Flip card", exact: true })).toBeVisible();
+        await expect.poll(() => validated).toBe(true);
+        const persistedCount = () =>
+            page.evaluate(
+                () => JSON.parse(sessionStorage.getItem("langboard-card-flip-session")!).state.trays["fixture-user:fixture-project"].length
+            );
+        await expect.poll(persistedCount).toBe(status === 403 ? 0 : 3);
+        await expect(page.locator("[data-card-viewer]")).toHaveCount(1);
+    });
+}
+
+test("reduced-motion keeps the compact tray keyboard accessible", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await mockBoardApi(page);
+    await seedTray(page, 3);
+    await page.goto(FIXTURE);
+    const button = page.getByRole("button", { name: "Flipped cards · 3", exact: true });
+    await button.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("button", { name: "Restore Card other-0", exact: true })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(button).toBeFocused();
+    await expect(page.locator("[data-card-viewer]")).toHaveCount(1);
+});
