@@ -14,7 +14,7 @@ from langboard_shared.filter import RoleFilter
 from langboard_shared.security import RoleFinder
 from pydantic import BaseModel
 from ...mcp_integration import McpServer, McpTool
-from ...middlewares.McpAuthMiddleware import mcp_auth_context, _resolve_mcp_tool_group_uid
+from ...middlewares.McpAuthMiddleware import _resolve_mcp_tool_group_uid, mcp_auth_context
 
 
 @AppRouter.schema(permission=ApiPermission.Read)
@@ -162,3 +162,4 @@ def serialize_mcp_result(value: Any) -> Any:
     if isinstance(value, (list, tuple)):
         return [serialize_mcp_result(item) for item in value]
     return value
+
