@@ -65,7 +65,8 @@ def get_employee_identity_proof(user: User, service: DomainService, request_nonc
     if context.get("api_key") is not None or not isinstance(claims, dict) or context.get("user_or_bot") is not user:
         raise AuthorizationError("Verified user OIDC bearer required")
     current = service.user.get_by_id_like(user.id)
-    link = service.identity_link.get_by_user_provider(user, IdentityProvider.Oidc)
+    issuer = str(claims.get("iss", "")).strip().rstrip("/")
+    link = service.identity_link.get_by_provider_external_id(IdentityProvider.Oidc, claims.get("sub", ""), issuer)
     now = int(datetime.now(timezone.utc).timestamp())
     audiences = claims.get("aud")
     if (
@@ -74,12 +75,14 @@ def get_employee_identity_proof(user: User, service: DomainService, request_nonc
         or current.deleted_at is not None
         or link is None
         or link.user_id != user.id
-        or link.issuer != claims.get("iss")
+        or link.issuer != issuer
         or link.external_id != claims.get("sub")
         or claims.get("iss") != Env.OIDC_ISSUER
         or not Env.OIDC_RESOURCE_AUDIENCE
         or not (
-            audiences == Env.OIDC_RESOURCE_AUDIENCE or isinstance(audiences, list) and Env.OIDC_RESOURCE_AUDIENCE in audiences
+            audiences == Env.OIDC_RESOURCE_AUDIENCE
+            or isinstance(audiences, list)
+            and Env.OIDC_RESOURCE_AUDIENCE in audiences
         )
         or type(claims.get("exp")) is not int
         or claims["exp"] <= now

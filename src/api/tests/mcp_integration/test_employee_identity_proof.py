@@ -145,7 +145,11 @@ def test_identity_proof_is_scoped_and_bounded(monkeypatch, case):
         claims["iss"] = "https://evil.example"
     service = SimpleNamespace(
         user=SimpleNamespace(get_by_id_like=lambda _: active),
-        identity_link=SimpleNamespace(get_by_user_provider=lambda *_: link),
+        identity_link=SimpleNamespace(
+            get_by_provider_external_id=lambda provider, subject, issuer: link
+            if issuer == ISSUER and subject == "keycloak-user"
+            else None
+        ),
     )
     nonce = str(uuid4())
     token = mcp_auth_context.set(context)
@@ -214,7 +218,7 @@ def test_oidc_resolution_requires_existing_exact_account_link(monkeypatch, case)
     monkeypatch.setattr(OidcClient, "validate_access_token", lambda _: claims)
     user = SimpleNamespace(id=123, activated_at=object(), deleted_at=None)
     link = SimpleNamespace(user_id=123, issuer=ISSUER, external_id="keycloak-user")
-    current = SimpleNamespace(issuer=ISSUER, external_id="keycloak-user")
+    current = SimpleNamespace(user_id=123, issuer=ISSUER, external_id="keycloak-user")
     if case == "issuer":
         link.issuer = "https://evil.example"
     if case == "inactive":
@@ -222,9 +226,7 @@ def test_oidc_resolution_requires_existing_exact_account_link(monkeypatch, case)
     if case == "same_account":
         current.external_id = "another-person"
     service = SimpleNamespace(
-        identity_link=SimpleNamespace(
-            get_by_provider_external_id=lambda *_: link, get_by_user_provider=lambda *_: current
-        ),
+        identity_link=SimpleNamespace(get_by_provider_external_id=lambda *_: link),
         user=SimpleNamespace(get_by_id_like=lambda _: user),
         close=lambda: None,
     )
@@ -232,7 +234,11 @@ def test_oidc_resolution_requires_existing_exact_account_link(monkeypatch, case)
 
     def issuer_scoped_lookup(provider, subject, issuer):
         assert subject == "keycloak-user" and issuer == ISSUER
-        return lookup(provider, subject, issuer)
+        result = lookup(provider, subject, issuer)
+        service.identity_link.get_by_provider_external_id = (
+            lambda provider, subject, issuer: current if issuer == ISSUER else None
+        )
+        return result
 
     service.identity_link.get_by_provider_external_id = issuer_scoped_lookup
     monkeypatch.setattr(identity, "DomainService", lambda: service)
@@ -241,3 +247,53 @@ def test_oidc_resolution_requires_existing_exact_account_link(monkeypatch, case)
     else:
         with pytest.raises(PermissionError):
             identity.resolve_oidc_mcp_identity("opaque")
+
+
+def test_employee_resolution_and_proof_use_persisted_issuer_scoped_links(monkeypatch):
+    """Exercise the real repository filters; an omitted issuer must not match an OIDC link."""
+    from contextlib import contextmanager
+    import sqlalchemy as sa
+    from langboard_shared.core.db import DbSession
+    from langboard_shared.domain.models import IdentityProvider, UserIdentityLink
+    from langboard_shared.infrastructure.repositories.factory.UserIdentityLinkRepository import (
+        UserIdentityLinkRepository,
+    )
+    from langboard_shared.security import OidcMcpIdentity as identity
+    from sqlalchemy.orm import Session
+
+    configure(monkeypatch)
+    engine = sa.create_engine("sqlite://")
+    UserIdentityLink.__table__.create(engine)
+    user = SimpleNamespace(id=123, activated_at=object(), deleted_at=None)
+    link = UserIdentityLink(user_id=123, provider=IdentityProvider.Oidc, external_id="keycloak-user", issuer=ISSUER)
+    with Session(engine) as session:
+        session.add(link)
+        session.commit()
+
+        @contextmanager
+        def use(**kwargs):
+            yield SimpleNamespace(exec=lambda statement: session.scalars(statement))
+
+        monkeypatch.setattr(DbSession, "use", use)
+        repository = UserIdentityLinkRepository(lambda *_: None, lambda *_: None)
+        assert repository.get_by_provider_external_id(IdentityProvider.Oidc, "keycloak-user") is None
+        assert (
+            repository.get_by_provider_external_id(IdentityProvider.Oidc, "keycloak-user", "https://other.example")
+            is None
+        )
+        service = SimpleNamespace(
+            identity_link=repository,
+            user=SimpleNamespace(get_by_id_like=lambda _: user),
+            close=lambda: None,
+        )
+        now = int(datetime.now(timezone.utc).timestamp())
+        claims = {"iss": ISSUER, "sub": "keycloak-user", "aud": "langboard-api", "exp": now + 30}
+        monkeypatch.setattr(identity, "DomainService", lambda: service)
+        monkeypatch.setattr(OidcClient, "validate_access_token", lambda _: claims)
+        assert identity.resolve_oidc_mcp_identity("fixture")[0] is user
+        monkeypatch.setattr(proof, "identity_signer", lambda: (Ed25519PrivateKey.generate(), "public", "fixture"))
+        context = mcp_auth_context.set({"user_or_bot": user, "api_key": None, "oidc_claims": claims})
+        try:
+            assert proof.get_employee_identity_proof(user, service, str(uuid4())).attestation
+        finally:
+            mcp_auth_context.reset(context)

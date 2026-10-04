@@ -19,8 +19,13 @@ def resolve_oidc_mcp_identity(token: str) -> tuple[User, dict[str, Any]]:
         user = service.user.get_by_id_like(link.user_id)
         if user is None or not user.activated_at or user.deleted_at is not None:
             raise PermissionError("OIDC account is inactive")
-        current_link = service.identity_link.get_by_user_provider(user, IdentityProvider.Oidc)
-        if current_link is None or current_link.external_id != claims["sub"] or current_link.issuer != issuer:
+        current_link = service.identity_link.get_by_provider_external_id(IdentityProvider.Oidc, claims["sub"], issuer)
+        if (
+            current_link is None
+            or current_link.user_id != user.id
+            or current_link.external_id != claims["sub"]
+            or current_link.issuer != issuer
+        ):
             raise PermissionError("OIDC account identity differs")
         return user, claims
     finally:
