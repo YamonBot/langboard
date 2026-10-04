@@ -177,3 +177,16 @@ async def test_native_oidc_group_default_preserves_authorization(monkeypatch, su
         assert called == ["allowed"]
     else:
         assert called == []
+
+
+def test_mcp_module_exports_only_middleware_classes():
+    """The real application loader must not treat the group helper as middleware."""
+    import importlib
+    from pathlib import Path
+
+    from langboard_shared.ModuleLoader import ModuleLoader
+    from langboard_shared.core.routing import BaseMiddleware
+
+    module = importlib.import_module("langboard.middlewares.McpAuthMiddleware")
+    exports = ModuleLoader(Path("."), "langboard").get_exports(module.__name__, module, BaseMiddleware)
+    assert exports == [module.McpAuthMiddleware]

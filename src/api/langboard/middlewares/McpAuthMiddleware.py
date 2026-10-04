@@ -14,7 +14,7 @@ from starlette.datastructures import Headers
 mcp_auth_context: ContextVar[Any] = ContextVar("mcp_auth_context", default=None)
 
 
-def resolve_mcp_tool_group_uid(headers: Headers, scope: dict[str, Any], validation_result: Any) -> str | None:
+def _resolve_mcp_tool_group_uid(headers: Headers, scope: dict[str, Any], validation_result: Any) -> str | None:
     """Resolve an MCP group without allowing API keys or unauthenticated callers to inherit OIDC defaults."""
     value = headers.get(
         AuthSecurity.MCP_TOOL_GROUP_UID_HEADER, headers.get(AuthSecurity.MCP_TOOL_GROUP_UID_HEADER.lower())
@@ -53,7 +53,7 @@ class McpAuthMiddleware(BaseMiddleware):
 
         # An explicit header remains authoritative; only verified OIDC users get the configured default.
         headers = Headers(scope=scope)
-        mcp_tool_group_uid = resolve_mcp_tool_group_uid(headers, scope, validation_result)
+        mcp_tool_group_uid = _resolve_mcp_tool_group_uid(headers, scope, validation_result)
 
         if not mcp_tool_group_uid:
             response = JsonResponse(

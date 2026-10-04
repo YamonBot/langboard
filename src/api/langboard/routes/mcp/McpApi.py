@@ -14,7 +14,7 @@ from langboard_shared.filter import RoleFilter
 from langboard_shared.security import RoleFinder
 from pydantic import BaseModel
 from ...mcp_integration import McpServer, McpTool
-from ...middlewares.McpAuthMiddleware import mcp_auth_context, resolve_mcp_tool_group_uid
+from ...middlewares.McpAuthMiddleware import mcp_auth_context, _resolve_mcp_tool_group_uid
 
 
 @AppRouter.schema(permission=ApiPermission.Read)
@@ -49,7 +49,7 @@ async def execute_mcp_tool(tool_name: str, request: Request):
         raise ApiException.Forbidden_403(ApiErrorCode.PE1001)
 
     # An explicit header remains authoritative; only verified OIDC users get the configured default.
-    mcp_tool_group_uid = resolve_mcp_tool_group_uid(request.headers, request.scope, user_or_bot)
+    mcp_tool_group_uid = _resolve_mcp_tool_group_uid(request.headers, request.scope, user_or_bot)
 
     if not mcp_tool_group_uid:
         raise ApiException.BadRequest_400(ApiErrorCode.VA0000)
