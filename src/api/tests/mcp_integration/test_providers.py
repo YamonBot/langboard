@@ -174,7 +174,7 @@ def test_mounted_profiles_retain_http_authentication(monkeypatch, path):
     from langboard_shared.helpers import MiddlewareHelper
 
     monkeypatch.setattr(ModuleLoader, "load", lambda *args, **kwargs: {})
-    monkeypatch.setattr(MiddlewareHelper, "validate_auth", lambda scope: 401)
+    monkeypatch.setattr(MiddlewareHelper, "validate_auth", lambda scope, *, allow_oidc=False: 401)
     app = App.__new__(App)
     app.config = SimpleNamespace(is_restarting=False)
     app.api = FastAPI()
