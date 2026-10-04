@@ -341,6 +341,7 @@ async def test_description_conflict_through_http_route(
     from httpx import ASGITransport, AsyncClient
     from langboard.card_workspace.domain import DescriptionPatchConflict
     from langboard_shared.core.logger import Logger
+    from langboard_shared.core.security import AuthSecurity
 
     route = importlib.import_module("langboard.routes.mcp.McpApi")
     closed: list[bool] = []
@@ -383,7 +384,7 @@ async def test_description_conflict_through_http_route(
         response = await client.post(
             "/mcp/tools/patch_card_description",
             json={},
-            headers={route.AuthSecurity.MCP_TOOL_GROUP_UID_HEADER: "test-group", "X-Request-ID": request_id},
+            headers={AuthSecurity.MCP_TOOL_GROUP_UID_HEADER: "test-group", "X-Request-ID": request_id},
         )
     assert response.status_code == (500 if reason == "effect failure" else 400)
     assert closed == [True]
