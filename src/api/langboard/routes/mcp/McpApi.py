@@ -162,4 +162,3 @@ def serialize_mcp_result(value: Any) -> Any:
     if isinstance(value, (list, tuple)):
         return [serialize_mcp_result(item) for item in value]
     return value
-
